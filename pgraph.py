@@ -64,7 +64,7 @@ class PGraph(tk.Frame):
 
         self.label_msg = tk.Label(master=self.frame_config, textvariable=self.msg)
         self.listbox_asc = tk.Listbox(master=self.frame_config, width=50, height=6)
-        self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=20, height=10, command=self.quit)
+        self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=10, height=1, command=self.close_window)
         self.label_msg.pack()
         self.listbox_asc.pack()
         self.button_quit.pack()
@@ -73,7 +73,7 @@ class PGraph(tk.Frame):
         self.draw()
         self.after(100, self.update)
 
-    def quit(self):
+    def close_window(self):
         self.master.destroy()
         print('終了しました')
 
@@ -110,7 +110,7 @@ def main():
     # Drug & Drop が可能なTkオブジェクトを生成
     root = TkinterDnD.Tk()
     root.title('PGraph')
-    root.geometry('1000x600')
+    root.geometry('1000x800')
 
     app = PGraph(master=root)
     root.drop_target_register(DND_FILES)
