@@ -64,12 +64,18 @@ class PGraph(tk.Frame):
 
         self.label_msg = tk.Label(master=self.frame_config, textvariable=self.msg)
         self.listbox_asc = tk.Listbox(master=self.frame_config, width=50, height=6)
+        self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=20, height=10, command=self.quit)
         self.label_msg.pack()
         self.listbox_asc.pack()
+        self.button_quit.pack()
 
     def update(self):
         self.draw()
-        self.after(1000, self.update)
+        self.after(100, self.update)
+
+    def quit(self):
+        self.master.destroy()
+        print('終了しました')
 
     def draw(self):
         xlim = [0, 0]
@@ -87,10 +93,11 @@ class PGraph(tk.Frame):
         self.canvas.draw()
 
     def get_asc(self, event=None):
-        if event.data.endswith('.asc'):
+        filename = event.data.strip('{').strip('}')
+        if filename.endswith('.asc'):
             self.msg = 'ascファイルが読み込まれました'
-            self.listbox_asc.insert(tk.END, event.data)
-            df_tmp = pd.read_csv(event.data, sep='[:\t]', header=None, engine='python')
+            self.listbox_asc.insert(tk.END, filename)
+            df_tmp = pd.read_csv(filename, sep='[:\t]', header=None, engine='python')
             df_tmp = df_tmp.loc[26:, 0:1]
             df_tmp = df_tmp.reset_index(drop=True)
             df_tmp.columns = ['x', 'y']
