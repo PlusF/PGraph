@@ -44,8 +44,6 @@ class PGraph(tk.Frame):
         self.create_graph()
         self.create_config()
 
-        self.update()
-
     def create_graph(self):
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot()
@@ -64,46 +62,46 @@ class PGraph(tk.Frame):
 
         self.label_msg = tk.Label(master=self.frame_config, textvariable=self.msg)
         self.listbox_asc = tk.Listbox(master=self.frame_config, width=50, height=6)
-        self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=10, height=1, command=self.close_window)
+        self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=10, height=1, command=self.master.destroy)
         self.label_msg.pack()
         self.listbox_asc.pack()
         self.button_quit.pack()
-
-    def update(self):
-        self.draw()
-        self.after(100, self.update)
 
     def close_window(self):
         self.master.destroy()
         print('終了しました')
 
     def draw(self):
-        xlim = [0, 0]
-        ylim = [0, 0]
+        ylims = {'min': [1e10], 'max': [0]}
         for df in self.dfs:
             df_tmp = df.astype(float)
             x = (1240 / df_tmp.x).values
             y = df_tmp.y.values
             ln, = self.ax.plot(x, y, color='k')
             self.lines.append(ln)
-            tmp_max = max(y)
-        self.ax.set_xlim()
-        self.ax.set_ylim()
+
+            ylims['min'].append(min(y))
+            ylims['max'].append(max(y))
+        ylim = [min(ylims['min']) * 0.9, max(ylims['max']) * 1.1]
+        self.ax.set_ylim(ylim)
 
         self.canvas.draw()
 
     def get_asc(self, event=None):
-        filename = event.data.strip('{').strip('}')
-        if filename.endswith('.asc'):
-            self.msg = 'ascファイルが読み込まれました'
-            self.listbox_asc.insert(tk.END, filename)
-            df_tmp = pd.read_csv(filename, sep='[:\t]', header=None, engine='python')
-            df_tmp = df_tmp.loc[26:, 0:1]
-            df_tmp = df_tmp.reset_index(drop=True)
-            df_tmp.columns = ['x', 'y']
-            self.dfs.append(df_tmp)
-        else:
-            self.msg = 'ascファイルを選択してください'
+        filenames = [f.replace('{', '').replace('}', '') for f in event.data.split('} {')]
+        for filename in filenames:
+            if filename.endswith('.asc'):
+                self.msg = 'ascファイルが読み込まれました'
+                self.listbox_asc.insert(tk.END, filename)
+                df_tmp = pd.read_csv(filename, sep='[:\t]', header=None, engine='python')
+                df_tmp = df_tmp.loc[26:, 0:1]
+                df_tmp = df_tmp.reset_index(drop=True)
+                df_tmp.columns = ['x', 'y']
+                self.dfs.append(df_tmp)
+                self.draw()
+            else:
+                self.msg = 'ascファイルを選択してください'
+                break
 
 
 def main():
