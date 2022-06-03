@@ -32,6 +32,11 @@ plt.rcParams['figure.subplot.bottom'] = 0.2
 plt.rcParams['figure.subplot.left'] = 0.2
 
 
+def quit_me(root_window):
+    root_window.quit()
+    root_window.destroy()
+
+
 class PGraph(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
@@ -66,10 +71,6 @@ class PGraph(tk.Frame):
         self.label_msg.pack()
         self.listbox_asc.pack()
         self.button_quit.pack()
-
-    def close_window(self):
-        self.master.destroy()
-        print('終了しました')
 
     def draw(self):
         ylims = {'min': [1e10], 'max': [0]}
@@ -112,6 +113,7 @@ def main():
 
     app = PGraph(master=root)
     root.drop_target_register(DND_FILES)
+    root.protocol('WM_DELETE_WINDOW', lambda: quit_me(root))
     root.dnd_bind('<<Drop>>', app.get_asc)
     app.mainloop()
 
