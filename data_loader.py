@@ -15,7 +15,7 @@ class DataLoader:
             return False
 
         df = self.load_asc(filename)
-        self.dict_df_[filename] = {'data': df, 'color': 'k', 'y_shift': 0, 'fit_params': []}
+        self.dict_df_[filename] = {'data': df, 'color': 'k', 'y_shift': 0}
         return True
 
     def load_files(self, filenames: list):
@@ -36,6 +36,7 @@ class DataLoader:
         else:
             print('未確認のファイル形式です．')
         df.columns = ['x', 'y']
+        df = df.astype(float)
 
         return df
 

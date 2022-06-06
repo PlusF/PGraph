@@ -46,7 +46,7 @@ class PGraph(tk.Frame):
         self.master = master
 
         self.dl = DataLoader()
-        self.fit = Fit()
+        self.fitter = Fit()
         self.lines = []
         self.msg = tk.StringVar(value='ファイルをドロップしてください')
 
@@ -63,7 +63,7 @@ class PGraph(tk.Frame):
         self.ax.set_ylabel('Intensity [arb. units]')  # TODO: Countsと可換に
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.master)
-        self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=2)
+        self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=3)
 
     def create_config(self):
         self.frame_config = tk.LabelFrame(master=self.master, text='Load Data')
@@ -71,6 +71,9 @@ class PGraph(tk.Frame):
 
         self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Setting')
         self.frame_graph.grid(row=1, column=1)
+
+        self.frame_fitting = tk.LabelFrame(master=self.master, text='Fitting')
+        self.frame_fitting.grid(row=1, column=2)
 
         self.label_msg = tk.Label(master=self.frame_config, textvariable=self.msg)
         self.listbox_asc = tk.Listbox(master=self.frame_config, width=50, height=6, selectmode='extended')
@@ -100,6 +103,14 @@ class PGraph(tk.Frame):
         self.entry_y_shift.grid(row=1, column=1)
         self.button_apply.grid(row=2, column=0, columnspan=2)
 
+        self.text_params = tk.Text(master=self.frame_fitting, width=20, height=5)
+        self.button_fit = tk.Button(master=self.frame_fitting, text='Fit', width=10, command=self.fit)
+        self.if_show = tk.BooleanVar(value=False)
+        self.check_fit = tk.Checkbutton(master=self.frame_fitting, variable=self.if_show, text='結果を描画')
+        self.text_params.grid(row=0, column=0, columnspan=2)
+        self.button_fit.grid(row=1, column=0)
+        self.check_fit.grid(row=1, column=1)
+
     def draw(self):
         for _ in self.lines:
             self.ax.lines.pop(0)
@@ -110,9 +121,8 @@ class PGraph(tk.Frame):
             color = item['color']
             y_shift = item['y_shift']
 
-            df_tmp = df.astype(float)
-            x = (1240 / df_tmp.x).values
-            y = df_tmp.y.values
+            x = (1240 / df.x).values
+            y = df.y.values
 
             ln, = self.ax.plot(x, y + y_shift, color=color)
             self.lines.append(ln)
@@ -150,6 +160,28 @@ class PGraph(tk.Frame):
         loaded_filenames = self.dl.get_names()
         for filename in loaded_filenames:
             self.listbox_asc.insert(0, filename)
+
+    def fit(self):
+        df_fit = None
+        for df in self.dl.get_dfs():
+            if df_fit is None:
+                df_fit = df
+            else:
+                df_fit = pd.concat([df_fit, df], axis=0)
+        df_fit = df_fit.sort_values('x', ascending=False)
+        x = 1240 / df_fit.x.values
+        y = df_fit.y.values
+
+        self.fitter.load_data(x, y)
+
+        params = self.text_params.get(1.0, tk.END)
+        print(params)
+        # self.fitter.set_params(0)
+        # self.fitter.fit()
+
+        if self.if_show.get():
+            self.fitter.draw(self.ax)
+            self.draw()
 
     def delete(self):
         selected_index = self.listbox_asc.curselection()
