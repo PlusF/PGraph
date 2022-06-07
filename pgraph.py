@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinterdnd2 import *
 import re
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -62,21 +63,23 @@ class PGraph(tk.Frame):
         self.ax.set_xlabel('Energy [eV]')  # TODO: 波長と可換に
         self.ax.set_ylabel('Intensity [arb. units]')  # TODO: Countsと可換に
 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.master)
-        self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=3)
-
     def create_config(self):
+        self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Area')
+        self.frame_graph.grid(row=0, column=0, columnspan=3)
+
         self.frame_config = tk.LabelFrame(master=self.master, text='Load Data')
         self.frame_config.grid(row=1, rowspan=2, column=0)
 
-        self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Setting')
-        self.frame_graph.grid(row=2, column=1)
-
         self.frame_fitting = tk.LabelFrame(master=self.master, text='Fitting')
-        self.frame_fitting.grid(row=2, column=2)
+        self.frame_fitting.grid(row=2, column=1)
 
         self.label_msg = tk.Label(master=self.master, textvariable=self.msg)
-        self.label_msg.grid(row=1, column=1, columnspan=2)
+        self.label_msg.grid(row=1, column=1)
+
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame_graph)
+        self.frame_graph_setting = tk.LabelFrame(master=self.frame_graph, text='Graph Setting')
+        self.canvas.get_tk_widget().grid(row=0, column=0)
+        self.frame_graph_setting.grid(row=0, column=1)
 
         self.listbox_asc = tk.Listbox(master=self.frame_config, width=50, height=6, selectmode='extended')
         self.xbar = tk.Scrollbar(self.frame_config, orient=tk.HORIZONTAL)
@@ -94,18 +97,6 @@ class PGraph(tk.Frame):
         self.button_update.grid(row=0, column=2)
         self.button_delete.grid(row=2, column=0)
         self.button_quit.grid(row=2, column=2)
-
-        self.label_color = tk.Label(master=self.frame_graph, text='色')
-        self.label_y_shift = tk.Label(master=self.frame_graph, text='y方向シフト')
-        self.entry_color = ttk.Combobox(master=self.frame_graph, values=('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold'), width=10)
-        self.entry_color.insert(0, 'black')
-        self.entry_y_shift = tk.Entry(master=self.frame_graph, textvariable=tk.StringVar(value='0'), width=13, justify=tk.CENTER)
-        self.button_apply = tk.Button(master=self.frame_graph, text='適用', width=10, command=self.update_graph)
-        self.label_color.grid(row=0, column=0)
-        self.label_y_shift.grid(row=1, column=0)
-        self.entry_color.grid(row=0, column=1)
-        self.entry_y_shift.grid(row=1, column=1)
-        self.button_apply.grid(row=2, column=0, columnspan=2)
 
         self.label_description_1 = tk.Label(master=self.frame_fitting, text='位置 強度 幅 (BG)')
         self.label_description_2 = tk.Label(master=self.frame_fitting, text='位置 強度 幅 (BG)')
@@ -126,28 +117,76 @@ class PGraph(tk.Frame):
         self.button_load.grid(row=2, column=2)
         self.button_save.grid(row=2, column=3)
 
+        self.labelframe_xaxis = tk.LabelFrame(master=self.frame_graph_setting, text='x軸ラベル')
+        self.x_label = tk.IntVar(value=2)
+        self.radio_x_1 = tk.Radiobutton(master=self.labelframe_xaxis, text='波長 [nm]', value=1, variable=self.x_label)
+        self.radio_x_2 = tk.Radiobutton(master=self.labelframe_xaxis, text='エネルギー [eV]', value=2, variable=self.x_label)
+        self.y_label = tk.IntVar(value=1)
+        self.labelframe_yaxis = tk.LabelFrame(master=self.frame_graph_setting, text='x軸ラベル')
+        self.radio_y_1 = tk.Radiobutton(master=self.labelframe_yaxis, text='Intensity [arb. units]', value=1, variable=self.y_label)
+        self.radio_y_2 = tk.Radiobutton(master=self.labelframe_yaxis, text='Counts', value=2, variable=self.y_label)
+        self.label_color = tk.Label(master=self.frame_graph_setting, text='色')
+        self.label_y_shift = tk.Label(master=self.frame_graph_setting, text='y方向シフト')
+        self.entry_color = ttk.Combobox(master=self.frame_graph_setting, values=('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold'), width=10)
+        self.entry_color.insert(0, 'black')
+        self.entry_y_shift = tk.Entry(master=self.frame_graph_setting, textvariable=tk.StringVar(value='0'), width=13, justify=tk.CENTER)
+        self.button_apply = tk.Button(master=self.frame_graph_setting, text='適用', width=10, command=self.update_graph)
+        self.labelframe_xaxis.grid(row=0, column=0, columnspan=2, sticky=tk.W)
+        self.labelframe_yaxis.grid(row=1, column=0, columnspan=2, sticky=tk.W)
+        self.label_color.grid(row=2, column=0)
+        self.label_y_shift.grid(row=3, column=0)
+        self.entry_color.grid(row=2, column=1)
+        self.entry_y_shift.grid(row=3, column=1)
+        self.button_apply.grid(row=4, column=0, columnspan=2)
+        self.radio_x_1.grid(row=0, column=0, sticky=tk.W)
+        self.radio_x_2.grid(row=1, column=0, sticky=tk.W)
+        self.radio_y_1.grid(row=0, column=0, sticky=tk.W)
+        self.radio_y_2.grid(row=1, column=0, sticky=tk.W)
+
     def clear(self):
         for obj in self.ax.lines + self.ax.collections:
             obj.remove()
 
     def draw(self):
         self.clear()
+
+        xlims = {'min': [1e10], 'max': [0]}
         ylims = {'min': [1e10], 'max': [0]}
         for item in self.dl.get_dict().values():
             df = item['data']
             color = item['color']
             y_shift = item['y_shift']
 
-            x = (1240 / df.x).values
+            x = df.x.values
+            if self.x_label.get() == 2:  # エネルギー
+                x = 1240 / x
+
             y = df.y.values
 
             ln, = self.ax.plot(x, y + y_shift, color=color)
             self.lines.append(ln)
 
+            xlims['min'].append(min(x))
+            xlims['max'].append(max(x))
             ylims['min'].append(min(y + y_shift))
             ylims['max'].append(max(y + y_shift))
+
+        xlim = [min(xlims['min']), max(xlims['max'])]
         ylim = [min(ylims['min']) * 0.9, max(ylims['max']) * 1.1]
+        self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
+
+        if self.x_label.get() == 1:  # 波長
+            self.ax.set_xlabel('WaveLength [nm]')
+        elif self.x_label.get() == 2:  # エネルギー
+            self.ax.set_xlabel('Energy [eV]')
+
+        if self.y_label.get() == 1:
+            self.ax.set_yticks([])
+            self.ax.set_ylabel('Intensity [arb. units]')
+        elif self.y_label.get() == 2:
+            self.ax.set_yticks(np.linspace(0, round(self.ax.get_ylim()[1], -2), 5))
+            self.ax.set_ylabel('Counts')
 
         if self.if_show.get():
             self.fitter.draw(self.ax)
@@ -193,7 +232,9 @@ class PGraph(tk.Frame):
             return False
 
         df_fit = df_fit.sort_values('x', ascending=False)
-        x = 1240 / df_fit.x.values
+        x = df_fit.x.values
+        if self.x_label.get() == 2:  # エネルギー
+            x = 1240 / x
         y = df_fit.y.values
 
         self.fitter.load_data(x, y)
