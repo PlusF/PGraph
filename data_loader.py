@@ -33,6 +33,8 @@ class DataLoader:
             df = df.reset_index(drop=True)
         elif df.shape[0] == 1024:  # AutoRayleighで出力したascファイルのとき
             print('AutoRayleighから出力されたファイルを読み込みました．\n\tキャリブレーションが必要です．')
+        elif df.shape[0] == 1015:
+            print('ラマンデータ')
         else:
             print('未確認のファイル形式です．')
         df.columns = ['x', 'y']

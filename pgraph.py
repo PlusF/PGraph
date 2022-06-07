@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk
 from tkinterdnd2 import *
 import re
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -68,34 +67,38 @@ class PGraph(tk.Frame):
 
     def create_config(self):
         self.frame_config = tk.LabelFrame(master=self.master, text='Load Data')
-        self.frame_config.grid(row=1, column=0)
+        self.frame_config.grid(row=1, rowspan=2, column=0)
 
         self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Setting')
-        self.frame_graph.grid(row=1, column=1)
+        self.frame_graph.grid(row=2, column=1)
 
         self.frame_fitting = tk.LabelFrame(master=self.master, text='Fitting')
-        self.frame_fitting.grid(row=1, column=2)
+        self.frame_fitting.grid(row=2, column=2)
 
-        self.label_msg = tk.Label(master=self.frame_config, textvariable=self.msg)
+        self.label_msg = tk.Label(master=self.master, textvariable=self.msg)
+        self.label_msg.grid(row=1, column=1, columnspan=2)
+
         self.listbox_asc = tk.Listbox(master=self.frame_config, width=50, height=6, selectmode='extended')
-        xbar = tk.Scrollbar(self.frame_config, orient=tk.HORIZONTAL)
-        ybar = tk.Scrollbar(self.frame_config, orient=tk.VERTICAL)
-        xbar.grid(row=2, column=0, sticky=tk.W + tk.E)
-        ybar.grid(row=1, column=1, sticky=tk.N + tk.S)
-        xbar.config(command=self.listbox_asc.xview)
-        ybar.config(command=self.listbox_asc.yview)
-        self.listbox_asc.config(xscrollcommand=xbar.set)
-        self.listbox_asc.config(yscrollcommand=ybar.set)
+        self.xbar = tk.Scrollbar(self.frame_config, orient=tk.HORIZONTAL)
+        self.ybar = tk.Scrollbar(self.frame_config, orient=tk.VERTICAL)
+        self.xbar.config(command=self.listbox_asc.xview)
+        self.ybar.config(command=self.listbox_asc.yview)
+        self.listbox_asc.config(xscrollcommand=self.xbar.set)
+        self.listbox_asc.config(yscrollcommand=self.ybar.set)
+        self.button_update = tk.Button(master=self.frame_config, text='グラフ\n更新', width=10, height=4, command=self.draw)
         self.button_delete = tk.Button(master=self.frame_config, text='削除', width=10, height=1, command=self.delete)
         self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=10, height=1, command=self.quit)
-        self.label_msg.grid(row=0, column=0)
-        self.listbox_asc.grid(row=1, column=0)
-        self.button_delete.grid(row=3, column=0)
-        self.button_quit.grid(row=3, column=2)
+        self.listbox_asc.grid(row=0, column=0)
+        self.xbar.grid(row=1, column=0, sticky=tk.W + tk.E)
+        self.ybar.grid(row=0, column=1, sticky=tk.N + tk.S)
+        self.button_update.grid(row=0, column=2)
+        self.button_delete.grid(row=2, column=0)
+        self.button_quit.grid(row=2, column=2)
 
         self.label_color = tk.Label(master=self.frame_graph, text='色')
         self.label_y_shift = tk.Label(master=self.frame_graph, text='y方向シフト')
         self.entry_color = ttk.Combobox(master=self.frame_graph, values=('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold'), width=10)
+        self.entry_color.insert(0, 'black')
         self.entry_y_shift = tk.Entry(master=self.frame_graph, textvariable=tk.StringVar(value='0'), width=13, justify=tk.CENTER)
         self.button_apply = tk.Button(master=self.frame_graph, text='適用', width=10, command=self.update_graph)
         self.label_color.grid(row=0, column=0)
@@ -104,18 +107,31 @@ class PGraph(tk.Frame):
         self.entry_y_shift.grid(row=1, column=1)
         self.button_apply.grid(row=2, column=0, columnspan=2)
 
+        self.label_description_1 = tk.Label(master=self.frame_fitting, text='位置 強度 幅 (BG)')
+        self.label_description_2 = tk.Label(master=self.frame_fitting, text='位置 強度 幅 (BG)')
         self.text_params = tk.Text(master=self.frame_fitting, width=20, height=5)
+        self.text_params.insert(1.0, '1.7 20000 0.2\n1.8 3000 0.2\n2.4 8000 0.4\n0')
+        self.text_params_fit = tk.Text(master=self.frame_fitting, width=20, height=5)
         self.button_fit = tk.Button(master=self.frame_fitting, text='Fit', width=10, command=self.fit)
         self.if_show = tk.BooleanVar(value=False)
         self.check_fit = tk.Checkbutton(master=self.frame_fitting, variable=self.if_show, text='結果を描画')
-        self.text_params.grid(row=0, column=0, columnspan=2)
-        self.button_fit.grid(row=1, column=0)
-        self.check_fit.grid(row=1, column=1)
+        self.button_load = tk.Button(master=self.frame_fitting, text='LOAD', width=10, command=self.load_params)
+        self.button_save = tk.Button(master=self.frame_fitting, text='SAVE', width=10, command=self.save_params)
+        self.label_description_1.grid(row=0, column=0, columnspan=2)
+        self.label_description_2.grid(row=0, column=2, columnspan=2)
+        self.text_params.grid(row=1, column=0, columnspan=2)
+        self.text_params_fit.grid(row=1, column=2, columnspan=2)
+        self.button_fit.grid(row=2, column=0)
+        self.check_fit.grid(row=2, column=1)
+        self.button_load.grid(row=2, column=2)
+        self.button_save.grid(row=2, column=3)
+
+    def clear(self):
+        for obj in self.ax.lines + self.ax.collections:
+            obj.remove()
 
     def draw(self):
-        for _ in self.lines:
-            self.ax.lines.pop(0)
-            self.lines.pop(0)
+        self.clear()
         ylims = {'min': [1e10], 'max': [0]}
         for item in self.dl.get_dict().values():
             df = item['data']
@@ -132,6 +148,9 @@ class PGraph(tk.Frame):
             ylims['max'].append(max(y + y_shift))
         ylim = [min(ylims['min']) * 0.9, max(ylims['max']) * 1.1]
         self.ax.set_ylim(ylim)
+
+        if self.if_show.get():
+            self.fitter.draw(self.ax)
 
         self.canvas.draw()
 
@@ -169,6 +188,10 @@ class PGraph(tk.Frame):
                 df_fit = df
             else:
                 df_fit = pd.concat([df_fit, df], axis=0)
+        if df_fit is None:
+            self.msg.set('データが見つかりません．')
+            return False
+
         df_fit = df_fit.sort_values('x', ascending=False)
         x = 1240 / df_fit.x.values
         y = df_fit.y.values
@@ -178,14 +201,42 @@ class PGraph(tk.Frame):
         params = self.text_params.get(1.0, tk.END)
         params = re.split('[\n ]', params)
         params = [float(p) for p in params if p != '']
-        print(params)
 
         self.fitter.set_params(params)
-        self.fitter.fit()
+        if self.fitter.fit():
+            self.msg.set('フィッティングに成功しました．')
+        else:
+            self.msg.set('フィッティングに失敗しました．パラメータを変えてください．')
 
-        if self.if_show.get():
-            self.draw()
-            self.fitter.draw(self.ax)
+        self.show_params_fit()
+
+        self.draw()
+
+    def show_params_fit(self):
+        params_fit = self.fitter.params_fit
+        text = ''
+        for i, param in enumerate(params_fit):
+            if i % 3 in [0, 1]:
+                text += str(round(param, 2)) + ' '
+            else:
+                text += str(round(param, 2)) + '\n'
+        self.text_params_fit.delete(1.0, tk.END)
+        self.text_params_fit.insert(1.0, text)
+
+    def load_params(self):
+        filename = list(self.dl.get_names())[0]
+        filename = filename.split('/')[:-1]
+        filename = '/'.join(filename)
+        filename += '/params.asc'
+        self.fitter.load_params(filename)
+        self.show_params_fit()
+
+    def save_params(self):
+        filename = list(self.dl.get_names())[0]
+        filename = filename.split('/')[:-1]
+        filename = '/'.join(filename)
+        filename += '/params.asc'
+        self.fitter.save_params(filename)
 
     def delete(self):
         selected_index = self.listbox_asc.curselection()
