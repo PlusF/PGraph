@@ -122,7 +122,7 @@ class PGraph(tk.Frame):
         self.radio_x_1 = tk.Radiobutton(master=self.labelframe_xaxis, text='波長 [nm]', value=1, variable=self.x_label)
         self.radio_x_2 = tk.Radiobutton(master=self.labelframe_xaxis, text='エネルギー [eV]', value=2, variable=self.x_label)
         self.y_label = tk.IntVar(value=1)
-        self.labelframe_yaxis = tk.LabelFrame(master=self.frame_graph_setting, text='x軸ラベル')
+        self.labelframe_yaxis = tk.LabelFrame(master=self.frame_graph_setting, text='y軸ラベル')
         self.radio_y_1 = tk.Radiobutton(master=self.labelframe_yaxis, text='Intensity [arb. units]', value=1, variable=self.y_label)
         self.radio_y_2 = tk.Radiobutton(master=self.labelframe_yaxis, text='Counts', value=2, variable=self.y_label)
         self.label_color = tk.Label(master=self.frame_graph_setting, text='色')
