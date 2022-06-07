@@ -24,6 +24,7 @@ To change graph color, set color and choose files you want to, then push 適用.
 As the same way, you can shift the graph along with y axis direction.
 # Fitting
 If you want to execute Lorentzian-fit, set initial params and push Fit.  
+If you want to check the result on the graph area, check 結果を描画.
 ![image](https://user-images.githubusercontent.com/92524649/172368186-b4edbcf6-a392-4277-b7f2-1b3c3af3fcee.png)  
 You can save the parameters.  
 You can also load the parameters if there is a parameter file.
