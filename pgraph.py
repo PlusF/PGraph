@@ -177,7 +177,7 @@ class PGraph(tk.Frame):
         self.ax.set_ylim(ylim)
 
         if self.x_label.get() == 1:  # 波長
-            self.ax.set_xlabel('WaveLength [nm]')
+            self.ax.set_xlabel('Wavelength [nm]')
         elif self.x_label.get() == 2:  # エネルギー
             self.ax.set_xlabel('Energy [eV]')
 
