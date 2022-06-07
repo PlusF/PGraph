@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinterdnd2 import *
+import re
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -175,13 +176,16 @@ class PGraph(tk.Frame):
         self.fitter.load_data(x, y)
 
         params = self.text_params.get(1.0, tk.END)
+        params = re.split('[\n ]', params)
+        params = [float(p) for p in params if p != '']
         print(params)
-        # self.fitter.set_params(0)
-        # self.fitter.fit()
+
+        self.fitter.set_params(params)
+        self.fitter.fit()
 
         if self.if_show.get():
-            self.fitter.draw(self.ax)
             self.draw()
+            self.fitter.draw(self.ax)
 
     def delete(self):
         selected_index = self.listbox_asc.curselection()
