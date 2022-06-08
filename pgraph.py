@@ -60,8 +60,8 @@ class PGraph(tk.Frame):
         self.ax.set_xlim(1.4, 2.9)
         self.ax.set_ylim(0, 10000)
         self.ax.set_yticks([])
-        self.ax.set_xlabel('Energy [eV]')  # TODO: 波長と可換に
-        self.ax.set_ylabel('Intensity [arb. units]')  # TODO: Countsと可換に
+        self.ax.set_xlabel('Energy [eV]')
+        self.ax.set_ylabel('Intensity [arb. units]')
 
     def create_config(self):
         self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Area')
