@@ -5,7 +5,7 @@ import re
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from data_loader import DataLoader
 from fitting import Fit
 
@@ -54,9 +54,13 @@ class PGraph(tk.Frame):
         self.create_graph()
         self.create_config()
 
+        self.master.bind("<Return>", self.update_graph)
+
     def create_graph(self):
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot()
+        self.ax_x = self.ax.get_xaxis()
+        self.ax_y = self.ax.get_yaxis()
         self.ax.set_xlim(1.4, 2.9)
         self.ax.set_ylim(0, 10000)
         self.ax.set_yticks([])
@@ -78,7 +82,9 @@ class PGraph(tk.Frame):
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame_graph)
         self.frame_graph_setting = tk.LabelFrame(master=self.frame_graph, text='Graph Setting')
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.frame_graph, pack_toolbar=False)
         self.canvas.get_tk_widget().grid(row=0, column=0)
+        self.toolbar.grid(row=1, column=0)
         self.frame_graph_setting.grid(row=0, column=1)
 
         self.listbox_asc = tk.Listbox(master=self.frame_config, width=50, height=6, selectmode='extended')
@@ -125,19 +131,45 @@ class PGraph(tk.Frame):
         self.labelframe_yaxis = tk.LabelFrame(master=self.frame_graph_setting, text='y軸ラベル')
         self.radio_y_1 = tk.Radiobutton(master=self.labelframe_yaxis, text='Intensity [arb. units]', value=1, variable=self.y_label)
         self.radio_y_2 = tk.Radiobutton(master=self.labelframe_yaxis, text='Counts', value=2, variable=self.y_label)
+
+        self.labelframe_range = tk.LabelFrame(master=self.frame_graph_setting, text='グラフ範囲')
+        self.label_min = tk.Label(master=self.labelframe_range, text='min')
+        self.label_max = tk.Label(master=self.labelframe_range, text='max')
+        self.label_ticks = tk.Label(master=self.labelframe_range, text='分割数')
+        self.label_xrange = tk.Label(master=self.labelframe_range, text='x')
+        self.label_yrange = tk.Label(master=self.labelframe_range, text='y')
+        self.entry_xmin = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
+        self.entry_xmax = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
+        self.entry_xticks = tk.Entry(master=self.labelframe_range, textvariable=tk.StringVar(value='auto'), width=5, justify=tk.CENTER)
+        self.entry_ymin = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
+        self.entry_ymax = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
+        self.entry_yticks = tk.Entry(master=self.labelframe_range, textvariable=tk.StringVar(value='auto'), width=5, justify=tk.CENTER)
+        self.label_min.grid(row=0, column=1)
+        self.label_max.grid(row=0, column=2)
+        self.label_ticks.grid(row=0, column=3)
+        self.label_xrange.grid(row=1, column=0)
+        self.entry_xmin.grid(row=1, column=1)
+        self.entry_xmax.grid(row=1, column=2)
+        self.entry_xticks.grid(row=1, column=3)
+        self.label_yrange.grid(row=2, column=0)
+        self.entry_ymin.grid(row=2, column=1)
+        self.entry_ymax.grid(row=2, column=2)
+        self.entry_yticks.grid(row=2, column=3)
+
         self.label_color = tk.Label(master=self.frame_graph_setting, text='色')
         self.label_y_shift = tk.Label(master=self.frame_graph_setting, text='y方向シフト')
-        self.entry_color = ttk.Combobox(master=self.frame_graph_setting, values=('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold'), width=10)
+        self.entry_color = ttk.Combobox(master=self.frame_graph_setting, values=('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold'), width=5)
         self.entry_color.insert(0, 'black')
-        self.entry_y_shift = tk.Entry(master=self.frame_graph_setting, textvariable=tk.StringVar(value='0'), width=13, justify=tk.CENTER)
+        self.entry_y_shift = tk.Entry(master=self.frame_graph_setting, textvariable=tk.StringVar(value='0'), width=5, justify=tk.CENTER)
         self.button_apply = tk.Button(master=self.frame_graph_setting, text='適用', width=10, command=self.update_graph)
         self.labelframe_xaxis.grid(row=0, column=0, columnspan=2, sticky=tk.W)
         self.labelframe_yaxis.grid(row=1, column=0, columnspan=2, sticky=tk.W)
-        self.label_color.grid(row=2, column=0)
-        self.label_y_shift.grid(row=3, column=0)
-        self.entry_color.grid(row=2, column=1)
-        self.entry_y_shift.grid(row=3, column=1)
-        self.button_apply.grid(row=4, column=0, columnspan=2)
+        self.labelframe_range.grid(row=2, column=0, columnspan=2, sticky=tk.W)
+        self.label_color.grid(row=3, column=0)
+        self.label_y_shift.grid(row=4, column=0)
+        self.entry_color.grid(row=3, column=1)
+        self.entry_y_shift.grid(row=4, column=1)
+        self.button_apply.grid(row=5, column=0, columnspan=2)
         self.radio_x_1.grid(row=0, column=0, sticky=tk.W)
         self.radio_x_2.grid(row=1, column=0, sticky=tk.W)
         self.radio_y_1.grid(row=0, column=0, sticky=tk.W)
@@ -173,8 +205,7 @@ class PGraph(tk.Frame):
 
         xlim = [min(xlims['min']), max(xlims['max'])]
         ylim = [min(ylims['min']) * 0.9, max(ylims['max']) * 1.1]
-        self.ax.set_xlim(xlim)
-        self.ax.set_ylim(ylim)
+        self.ax.set(xlim=xlim, ylim=ylim)
 
         if self.x_label.get() == 1:  # 波長
             self.ax.set_xlabel('Wavelength [nm]')
@@ -193,7 +224,39 @@ class PGraph(tk.Frame):
 
         self.canvas.draw()
 
-    def update_graph(self):
+    def check_range(self):
+        xmin = self.entry_xmin.get()
+        xmax = self.entry_xmax.get()
+        ymin = self.entry_ymin.get()
+        ymax = self.entry_ymax.get()
+        if xmin == '':
+            xmin = self.ax.get_xlim()[0]
+        else:
+            xmin = float(xmin)
+        if xmax == '':
+            xmax = self.ax.get_xlim()[1]
+        else:
+            xmax = float(xmax)
+        if ymin == '':
+            ymin = self.ax.get_ylim()[0]
+        else:
+            ymin = float(ymin)
+        if ymax == '':
+            ymax = self.ax.get_ylim()[1]
+        else:
+            ymax = float(ymax)
+        self.ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax])
+
+        self.ax_x.reset_ticks()
+        self.ax_y.reset_ticks()
+        if self.entry_xticks.get() != 'auto':
+            self.ax_x.set_ticks(np.linspace(xmin, xmax, int(self.entry_xticks.get()) + 1))
+        if self.entry_yticks.get() != 'auto':
+            self.ax_y.set_ticks(np.linspace(ymin, ymax, int(self.entry_yticks.get()) + 1))
+
+        self.canvas.draw()
+
+    def update_graph(self, event=None):
         selected_index = self.listbox_asc.curselection()
         for index in selected_index:
             filename = self.listbox_asc.get(index)
@@ -203,6 +266,8 @@ class PGraph(tk.Frame):
             self.dl.change_y_shift(filename, y_shift)
 
         self.draw()
+
+        self.check_range()
 
     def load(self, event=None):
         filenames = [f.replace('{', '').replace('}', '') for f in event.data.split('} {')]
