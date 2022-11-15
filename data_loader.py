@@ -6,8 +6,8 @@ class DataLoader:
         self.dict_df_ = {}
 
     def load_file(self, filename: str):
-        if filename.split('.')[-1] != 'asc':
-            print(f'ascファイルを選択してください．：{filename}')
+        if filename.split('.')[-1] not in ['asc', 'txt']:
+            print(f'ascまたはtxtファイルを選択してください．：{filename}')
             return False
 
         if filename in self.dict_df_:
