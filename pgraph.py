@@ -127,6 +127,7 @@ class PGraph(tk.Frame):
         self.x_label = tk.IntVar(value=2)
         self.radio_x_1 = tk.Radiobutton(master=self.labelframe_xaxis, text='波長 [nm]', value=1, variable=self.x_label)
         self.radio_x_2 = tk.Radiobutton(master=self.labelframe_xaxis, text='エネルギー [eV]', value=2, variable=self.x_label)
+        self.radio_x_3 = tk.Radiobutton(master=self.labelframe_xaxis, text='ラマンシフト [cm-1]', value=3, variable=self.x_label)
         self.y_label = tk.IntVar(value=1)
         self.labelframe_yaxis = tk.LabelFrame(master=self.frame_graph_setting, text='y軸ラベル')
         self.radio_y_1 = tk.Radiobutton(master=self.labelframe_yaxis, text='Intensity [arb. units]', value=1, variable=self.y_label)
@@ -172,6 +173,7 @@ class PGraph(tk.Frame):
         self.button_apply.grid(row=5, column=0, columnspan=2)
         self.radio_x_1.grid(row=0, column=0, sticky=tk.W)
         self.radio_x_2.grid(row=1, column=0, sticky=tk.W)
+        self.radio_x_3.grid(row=2, column=0, sticky=tk.W)
         self.radio_y_1.grid(row=0, column=0, sticky=tk.W)
         self.radio_y_2.grid(row=1, column=0, sticky=tk.W)
 
@@ -211,6 +213,8 @@ class PGraph(tk.Frame):
             self.ax.set_xlabel('Wavelength [nm]')
         elif self.x_label.get() == 2:  # エネルギー
             self.ax.set_xlabel('Energy [eV]')
+        elif self.x_label.get() == 3:  # ラマンシフト
+            self.ax.set_xlabel('Raman shift [cm-1]')
 
         if self.y_label.get() == 1:
             self.ax.set_yticks([])
