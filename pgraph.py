@@ -56,6 +56,9 @@ class PGraph(tk.Frame):
 
         self.master.bind("<Return>", self.update_graph)
 
+        # TODO: list boxをクリックしたら該当の色・y方向シフトを表示（スペクトルをハイライト？）
+        # TODO: 縦ライン・横ラインを入れられるように
+
     def create_graph(self):
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot()
@@ -163,6 +166,7 @@ class PGraph(tk.Frame):
         self.entry_color.insert(0, 'black')
         self.entry_y_shift = tk.Entry(master=self.frame_graph_setting, textvariable=tk.StringVar(value='0'), width=5, justify=tk.CENTER)
         self.button_apply = tk.Button(master=self.frame_graph_setting, text='適用', width=10, command=self.update_graph)
+        # TODO: リセットボタン
         self.labelframe_xaxis.grid(row=0, column=0, columnspan=2, sticky=tk.W)
         self.labelframe_yaxis.grid(row=1, column=0, columnspan=2, sticky=tk.W)
         self.labelframe_range.grid(row=2, column=0, columnspan=2, sticky=tk.W)
@@ -207,6 +211,8 @@ class PGraph(tk.Frame):
 
         xlim = [min(xlims['min']), max(xlims['max'])]
         ylim = [min(ylims['min']) * 0.9, max(ylims['max']) * 1.1]
+
+        # TODO: entryに入力されている場合はそちらを優先
         self.ax.set(xlim=xlim, ylim=ylim)
 
         if self.x_label.get() == 1:  # 波長
@@ -317,6 +323,7 @@ class PGraph(tk.Frame):
             self.msg.set('フィッティングに成功しました．')
         else:
             self.msg.set('フィッティングに失敗しました．パラメータを変えてください．')
+            return
 
         self.show_params_fit()
 

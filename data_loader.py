@@ -27,6 +27,10 @@ class DataLoader:
 
     def load_asc(self, filename: str):
         df = pd.read_csv(filename, sep='[:\t]', header=None, engine='python')
+        if df.shape[0] == 1057:  # 最近のファイルは情報量が増えた
+            print('Solisから出力されたファイルを読み込みました．')
+            df = df.loc[30:, 0:1]
+            df = df.reset_index(drop=True)
         if df.shape[0] > 1024:  # sifからbatch conversionで変換したascファイルのとき
             print('Solisから出力されたファイルを読み込みました．')
             df = df.loc[26:, 0:1]
