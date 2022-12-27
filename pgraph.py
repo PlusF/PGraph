@@ -56,7 +56,6 @@ class PGraph(tk.Frame):
 
         self.master.bind("<Return>", self.update_option)
 
-        # TODO: list boxをクリックしたら該当の色・y方向シフトを表示（スペクトルをハイライト？）
         # TODO: 縦ライン・横ラインを入れられるように
 
     def create_graph(self):
@@ -239,7 +238,6 @@ class PGraph(tk.Frame):
         xlim = [min(xlims['min']), max(xlims['max'])]
         ylim = [min(ylims['min']) * 0.9, max(ylims['max']) * 1.1]
 
-        # TODO: entryに入力されている場合はそちらを優先
         self.ax.set(xlim=xlim, ylim=ylim)
 
         if self.x_label.get() == 1:  # 波長
@@ -259,13 +257,11 @@ class PGraph(tk.Frame):
         if self.if_show.get():
             self.fitter.draw(self.ax)
 
-        # TODO: legend
-
-        self.check_range()
+        self.check_and_fix_range()
 
         self.canvas.draw()
 
-    def check_range(self):
+    def get_graph_range(self):
         xmin = self.entry_xmin.get()
         xmax = self.entry_xmax.get()
         ymin = self.entry_ymin.get()
@@ -286,14 +282,19 @@ class PGraph(tk.Frame):
             ymax = self.ax.get_ylim()[1]
         else:
             ymax = float(ymax)
-        self.ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax])
+
+        return [xmin, xmax], [ymin, ymax]
+
+    def check_and_fix_range(self):
+        xlim, ylim = self.get_graph_range()
+        self.ax.set(xlim=xlim, ylim=ylim)
 
         self.ax_x.reset_ticks()
         self.ax_y.reset_ticks()
         if self.entry_xticks.get() != 'auto':
-            self.ax_x.set_ticks(np.linspace(xmin, xmax, int(self.entry_xticks.get()) + 1))
+            self.ax_x.set_ticks(np.linspace(*xlim, int(self.entry_xticks.get()) + 1))
         if self.entry_yticks.get() != 'auto':
-            self.ax_y.set_ticks(np.linspace(ymin, ymax, int(self.entry_yticks.get()) + 1))
+            self.ax_y.set_ticks(np.linspace(*ylim, int(self.entry_yticks.get()) + 1))
 
     def update_option(self, event=None):
         selected_index = self.listbox_asc.curselection()
@@ -349,17 +350,17 @@ class PGraph(tk.Frame):
         self.draw()
 
     def fit(self):
-        df_fit = None
-        for df in self.dl.get_dfs():
-            if df_fit is None:
-                df_fit = df
-            else:
-                df_fit = pd.concat([df_fit, df], axis=0)
+        df_fit = pd.concat(self.dl.get_dfs(), axis=0)
         if df_fit is None:
             self.msg.set('データが見つかりません．')
             return False
 
         df_fit = df_fit.sort_values('x', ascending=False)
+
+        # 表示範囲だけにトリミング
+        xlim, _ = self.get_graph_range()
+        df_fit = df_fit[(xlim[0] <= df_fit['x']) & (df_fit['x'] <= xlim[1])]
+
         x = df_fit.x.values
         if self.x_label.get() == 2:  # エネルギー
             x = 1240 / x
