@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from MyToolbar import MyToolbar
 from data_loader import DataLoader
 from fitting import Fit
 
@@ -48,7 +49,6 @@ class PGraph(tk.Frame):
 
         self.dl = DataLoader()
         self.fitter = Fit()
-        self.lines = []
         self.msg = tk.StringVar(value='ファイルをドロップしてください')
 
         self.create_graph()
@@ -71,42 +71,43 @@ class PGraph(tk.Frame):
         self.ax.set_ylabel('Intensity [arb. units]')
 
     def create_config(self):
+        # all parent frames
         self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Area')
-        self.frame_graph.grid(row=0, column=0, columnspan=3)
-
         self.frame_config = tk.LabelFrame(master=self.master, text='Load Data')
-        self.frame_config.grid(row=1, rowspan=2, column=0)
-
         self.frame_fitting = tk.LabelFrame(master=self.master, text='Fitting')
-        self.frame_fitting.grid(row=2, column=1)
-
         self.label_msg = tk.Label(master=self.master, textvariable=self.msg)
+        self.frame_graph.grid(row=0, column=0, columnspan=3)
+        self.frame_config.grid(row=1, rowspan=2, column=0)
+        self.frame_fitting.grid(row=2, column=1)
         self.label_msg.grid(row=1, column=1)
 
+        # graph
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame_graph)
         self.frame_graph_setting = tk.LabelFrame(master=self.frame_graph, text='Graph Setting')
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.frame_graph, pack_toolbar=False)
+        self.toolbar = MyToolbar(self.canvas, self.frame_graph, pack_toolbar=False)
         self.canvas.get_tk_widget().grid(row=0, column=0)
         self.toolbar.grid(row=1, column=0)
         self.frame_graph_setting.grid(row=0, column=1)
 
-        self.listbox_asc = tk.Listbox(master=self.frame_config, width=50, height=6, selectmode='extended')
+        # config
+        self.listbox_asc = tk.Listbox(master=self.frame_config, width=80, height=6, selectmode='extended')
         self.xbar = tk.Scrollbar(self.frame_config, orient=tk.HORIZONTAL)
         self.ybar = tk.Scrollbar(self.frame_config, orient=tk.VERTICAL)
         self.xbar.config(command=self.listbox_asc.xview)
         self.ybar.config(command=self.listbox_asc.yview)
         self.listbox_asc.config(xscrollcommand=self.xbar.set)
         self.listbox_asc.config(yscrollcommand=self.ybar.set)
-        self.button_update = tk.Button(master=self.frame_config, text='グラフ\n更新', width=10, height=4, command=self.draw)
         self.button_delete = tk.Button(master=self.frame_config, text='削除', width=10, height=1, command=self.delete)
+        self.button_sort = tk.Button(master=self.frame_config, text='ソート', width=10, height=1, command=self.sort_file)
         self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=10, height=1, command=self.quit)
-        self.listbox_asc.grid(row=0, column=0)
-        self.xbar.grid(row=1, column=0, sticky=tk.W + tk.E)
-        self.ybar.grid(row=0, column=1, sticky=tk.N + tk.S)
-        self.button_update.grid(row=0, column=2)
+        self.listbox_asc.grid(row=0, column=0, columnspan=3)
+        self.xbar.grid(row=1, column=0, columnspan=3, sticky=tk.W + tk.E)
+        self.ybar.grid(row=0, column=3, sticky=tk.N + tk.S)
         self.button_delete.grid(row=2, column=0)
+        self.button_sort.grid(row=2, column=1)
         self.button_quit.grid(row=2, column=2)
 
+        # fitting
         self.label_description_1 = tk.Label(master=self.frame_fitting, text='位置 強度 幅 (BG)')
         self.label_description_2 = tk.Label(master=self.frame_fitting, text='位置 強度 幅 (BG)')
         self.text_params = tk.Text(master=self.frame_fitting, width=20, height=5)
@@ -126,17 +127,31 @@ class PGraph(tk.Frame):
         self.button_load.grid(row=2, column=2)
         self.button_save.grid(row=2, column=3)
 
+        # labelframes in graph_setting
         self.labelframe_xaxis = tk.LabelFrame(master=self.frame_graph_setting, text='x軸ラベル')
-        self.x_label = tk.IntVar(value=2)
-        self.radio_x_1 = tk.Radiobutton(master=self.labelframe_xaxis, text='波長 [nm]', value=1, variable=self.x_label)
-        self.radio_x_2 = tk.Radiobutton(master=self.labelframe_xaxis, text='エネルギー [eV]', value=2, variable=self.x_label)
-        self.radio_x_3 = tk.Radiobutton(master=self.labelframe_xaxis, text='ラマンシフト [cm-1]', value=3, variable=self.x_label)
-        self.y_label = tk.IntVar(value=1)
         self.labelframe_yaxis = tk.LabelFrame(master=self.frame_graph_setting, text='y軸ラベル')
-        self.radio_y_1 = tk.Radiobutton(master=self.labelframe_yaxis, text='Intensity [arb. units]', value=1, variable=self.y_label)
-        self.radio_y_2 = tk.Radiobutton(master=self.labelframe_yaxis, text='Counts', value=2, variable=self.y_label)
-
         self.labelframe_range = tk.LabelFrame(master=self.frame_graph_setting, text='グラフ範囲')
+        self.labelframe_individual = tk.LabelFrame(master=self.frame_graph_setting, text='個別設定')
+        self.labelframe_xaxis.grid(row=0, column=0, columnspan=2, sticky=tk.W)
+        self.labelframe_yaxis.grid(row=1, column=0, columnspan=2, sticky=tk.W)
+        self.labelframe_range.grid(row=2, column=0, columnspan=2, sticky=tk.W)
+        self.labelframe_individual.grid(row=3, column=0, columnspan=2, sticky=tk.W)
+
+        # xaxis, yaxis
+        self.x_label = tk.IntVar(value=2)
+        self.radio_x_1 = tk.Radiobutton(master=self.labelframe_xaxis, text='波長 [nm]', value=1, variable=self.x_label, command=self.update_graph)
+        self.radio_x_2 = tk.Radiobutton(master=self.labelframe_xaxis, text='エネルギー [eV]', value=2, variable=self.x_label, command=self.update_graph)
+        self.radio_x_3 = tk.Radiobutton(master=self.labelframe_xaxis, text='ラマンシフト [cm-1]', value=3, variable=self.x_label, command=self.update_graph)
+        self.y_label = tk.IntVar(value=1)
+        self.radio_y_1 = tk.Radiobutton(master=self.labelframe_yaxis, text='Intensity [arb. units]', value=1, variable=self.y_label, command=self.update_graph)
+        self.radio_y_2 = tk.Radiobutton(master=self.labelframe_yaxis, text='Counts', value=2, variable=self.y_label, command=self.update_graph)
+        self.radio_x_1.grid(row=0, column=0, sticky=tk.W)
+        self.radio_x_2.grid(row=1, column=0, sticky=tk.W)
+        self.radio_x_3.grid(row=2, column=0, sticky=tk.W)
+        self.radio_y_1.grid(row=0, column=0, sticky=tk.W)
+        self.radio_y_2.grid(row=1, column=0, sticky=tk.W)
+
+        # range
         self.label_min = tk.Label(master=self.labelframe_range, text='min')
         self.label_max = tk.Label(master=self.labelframe_range, text='max')
         self.label_ticks = tk.Label(master=self.labelframe_range, text='分割数')
@@ -160,26 +175,24 @@ class PGraph(tk.Frame):
         self.entry_ymax.grid(row=2, column=2)
         self.entry_yticks.grid(row=2, column=3)
 
-        self.label_color = tk.Label(master=self.frame_graph_setting, text='色')
-        self.label_y_shift = tk.Label(master=self.frame_graph_setting, text='y方向シフト')
-        self.entry_color = ttk.Combobox(master=self.frame_graph_setting, values=('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold'), width=5)
-        self.entry_color.insert(0, 'black')
-        self.entry_y_shift = tk.Entry(master=self.frame_graph_setting, textvariable=tk.StringVar(value='0'), width=5, justify=tk.CENTER)
-        self.button_apply = tk.Button(master=self.frame_graph_setting, text='適用', width=10, command=self.update_graph)
-        # TODO: リセットボタン
-        self.labelframe_xaxis.grid(row=0, column=0, columnspan=2, sticky=tk.W)
-        self.labelframe_yaxis.grid(row=1, column=0, columnspan=2, sticky=tk.W)
-        self.labelframe_range.grid(row=2, column=0, columnspan=2, sticky=tk.W)
-        self.label_color.grid(row=3, column=0)
-        self.label_y_shift.grid(row=4, column=0)
-        self.entry_color.grid(row=3, column=1)
-        self.entry_y_shift.grid(row=4, column=1)
-        self.button_apply.grid(row=5, column=0, columnspan=2)
-        self.radio_x_1.grid(row=0, column=0, sticky=tk.W)
-        self.radio_x_2.grid(row=1, column=0, sticky=tk.W)
-        self.radio_x_3.grid(row=2, column=0, sticky=tk.W)
-        self.radio_y_1.grid(row=0, column=0, sticky=tk.W)
-        self.radio_y_2.grid(row=1, column=0, sticky=tk.W)
+        # individual
+        self.label_color = tk.Label(master=self.labelframe_individual, text='色')
+        self.label_y_shift = tk.Label(master=self.labelframe_individual, text='y方向シフト')
+        self.label_y_times = tk.Label(master=self.labelframe_individual, text='y方向倍率')
+        self.combobox_color = ttk.Combobox(master=self.labelframe_individual, values=('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold'), width=5)
+        self.combobox_color.insert(0, 'black')
+        self.entry_y_shift = tk.Entry(master=self.labelframe_individual, textvariable=tk.StringVar(value='0'), width=5, justify=tk.CENTER)
+        self.entry_y_times = tk.Entry(master=self.labelframe_individual, textvariable=tk.StringVar(value='1'), width=5, justify=tk.CENTER)
+        self.button_apply = tk.Button(master=self.labelframe_individual, text='適用', width=10, command=self.update_graph)
+        self.button_reset = tk.Button(master=self.labelframe_individual, text='リセット', width=10, command=self.reset)
+        self.label_color.grid(row=0, column=0)
+        self.label_y_shift.grid(row=1, column=0)
+        self.label_y_times.grid(row=2, column=0)
+        self.combobox_color.grid(row=0, column=1)
+        self.entry_y_shift.grid(row=1, column=1)
+        self.entry_y_times.grid(row=2, column=1)
+        self.button_apply.grid(row=3, column=0)
+        self.button_reset.grid(row=3, column=1)
 
     def clear(self):
         for obj in self.ax.lines + self.ax.collections:
@@ -194,15 +207,15 @@ class PGraph(tk.Frame):
             df = item['data']
             color = item['color']
             y_shift = item['y_shift']
+            y_times = item['y_times']
 
             x = df.x.values
             if self.x_label.get() == 2:  # エネルギー
                 x = 1240 / x
 
-            y = df.y.values
+            y = df.y.values * y_times
 
-            ln, = self.ax.plot(x, y + y_shift, color=color)
-            self.lines.append(ln)
+            self.ax.plot(x, y + y_shift, color=color)
 
             xlims['min'].append(min(x))
             xlims['max'].append(max(x))
@@ -231,6 +244,10 @@ class PGraph(tk.Frame):
 
         if self.if_show.get():
             self.fitter.draw(self.ax)
+
+        # TODO: legend
+
+        self.check_range()
 
         self.canvas.draw()
 
@@ -264,20 +281,18 @@ class PGraph(tk.Frame):
         if self.entry_yticks.get() != 'auto':
             self.ax_y.set_ticks(np.linspace(ymin, ymax, int(self.entry_yticks.get()) + 1))
 
-        self.canvas.draw()
-
     def update_graph(self, event=None):
         selected_index = self.listbox_asc.curselection()
         for index in selected_index:
             filename = self.listbox_asc.get(index)
-            color = self.entry_color.get()
+            color = self.combobox_color.get()
             y_shift = self.entry_y_shift.get()
+            y_times = self.entry_y_times.get()
             self.dl.change_color(filename, color)
             self.dl.change_y_shift(filename, y_shift)
+            self.dl.change_y_times(filename, y_times)
 
         self.draw()
-
-        self.check_range()
 
     def load(self, event=None):
         filenames = [f.replace('{', '').replace('}', '') for f in event.data.split('} {')]
@@ -293,7 +308,11 @@ class PGraph(tk.Frame):
         self.listbox_asc.delete(0, tk.END)
         loaded_filenames = self.dl.get_names()
         for filename in loaded_filenames:
-            self.listbox_asc.insert(0, filename)
+            self.listbox_asc.insert(tk.END, filename)
+
+    def reset(self):
+        self.dl.reset_option()
+        self.draw()
 
     def fit(self):
         df_fit = None
@@ -341,17 +360,13 @@ class PGraph(tk.Frame):
         self.text_params_fit.insert(1.0, text)
 
     def load_params(self):
-        filename = list(self.dl.get_names())[0]
-        filename = filename.split('/')[:-1]
-        filename = '/'.join(filename)
+        filename = self.dl.get_first_file_directory()
         filename += '/params.asc'
         self.fitter.load_params(filename)
         self.show_params_fit()
 
     def save_params(self):
-        filename = list(self.dl.get_names())[0]
-        filename = filename.split('/')[:-1]
-        filename = '/'.join(filename)
+        filename = self.dl.get_first_file_directory()
         filename += '/params.asc'
         self.fitter.save_params(filename)
 
@@ -362,7 +377,11 @@ class PGraph(tk.Frame):
             self.dl.delete_file(filename)
         for index in reversed(selected_index):
             self.listbox_asc.delete(index)
-        self.draw()
+
+    def sort_file(self):
+        self.listbox_asc.delete(0, tk.END)
+        for filename in sorted(self.dl.get_names()):
+            self.listbox_asc.insert(tk.END, filename)
 
     def quit(self):
         quit_me(self.master)

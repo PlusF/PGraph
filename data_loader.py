@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 
 
@@ -15,7 +16,7 @@ class DataLoader:
             return False
 
         df = self.load_asc(filename)
-        self.dict_df_[filename] = {'data': df, 'color': 'k', 'y_shift': 0}
+        self.dict_df_[filename] = {'data': df, 'color': 'k', 'linestyle': 'solid', 'y_shift': 0, 'y_times': 1}
         return True
 
     def load_files(self, filenames: list):
@@ -36,9 +37,9 @@ class DataLoader:
             df = df.loc[26:, 0:1]
             df = df.reset_index(drop=True)
         elif df.shape[0] == 1024:  # AutoRayleighで出力したascファイルのとき
-            print('AutoRayleighから出力されたファイルを読み込みました．\n\tキャリブレーションが必要です．')
+            print('AutoRayleighから出力されたファイルを読み込みました．')
         elif df.shape[0] == 1015:
-            print('ラマンデータ')
+            print('Renishaw Ramanから出力されたファイルを読み込みました．')
         else:
             print('未確認のファイル形式です．')
         df.columns = ['x', 'y']
@@ -49,8 +50,11 @@ class DataLoader:
     def get_dict(self):
         return self.dict_df_
 
+    def get_len_dict(self):
+        return len(self.dict_df_)
+
     def get_names(self):
-        return self.dict_df_.keys()
+        return list(self.dict_df_.keys())
 
     def get_df(self, key: str):
         return self.dict_df_[key]['data']
@@ -58,6 +62,13 @@ class DataLoader:
     def get_dfs(self):
         dfs = [item['data'] for item in self.dict_df_.values()]
         return dfs
+
+    def get_first_file_directory(self):
+        return os.path.dirname(self.get_names()[0])
+
+    def reset_option(self):
+        for name, item in self.dict_df_.items():
+            self.dict_df_[name] = {'data': item['data'], 'color': 'k', 'linestyle': 'solid', 'y_shift': 0, 'y_times': 1}
 
     def delete_file(self, key: str):
         if key not in self.dict_df_:
@@ -79,29 +90,19 @@ class DataLoader:
         return True
 
     def change_y_shift(self, filename: str, y_shift: str):
-        y_shift = float(y_shift)
+        try:
+            y_shift = float(y_shift)
+        except ValueError:
+            print('Invalid Value.')
+            return False
         self.dict_df_[filename]['y_shift'] = y_shift
         return True
 
-
-def test():
-    dl = DataLoader()
-    ret = dl.load_file(r"G:\共有ドライブ\Laboratory\Individuals\kaneda\Data_B4\卒論_slit_gas-flow_02\Rayleigh\220113atmND50\2-1_01_s0.1-45\raw\2-1_01_s0.1-45_500.asc")
-    print(ret)
-    ret = dl.load_files(
-        [
-            r"G:\共有ドライブ\Laboratory\Individuals\kaneda\Data_M1\220603\AutoRayleighbackground.asc",
-            r"G:\共有ドライブ\Laboratory\Individuals\kaneda\Data_B4\卒論_slit_gas-flow_02\Rayleigh\220112Water384ND50\2-1_01_s0.1-300\raw\2-1_01_s0.1-300_500.asc",
-            r"G:\共有ドライブ\Laboratory\Individuals\kaneda\Data_B4\卒論_slit_gas-flow_02\Rayleigh\220112Water384ND50\2-1_01_s0.1-300\raw\2-1_01_s0.1-300_630.asc",
-            r"G:\共有ドライブ\Laboratory\Individuals\kaneda\Data_B4\卒論_slit_gas-flow_02\Rayleigh\220112Water384ND50\2-1_01_s0.1-300\raw\2-1_01_s0.1-300_500.asc"
-        ]
-    )
-    print(ret)
-    dict_df = dl.get_dict()
-    for name, df in dict_df.items():
-        print(name)
-        print(df)
-
-
-if __name__ == '__main__':
-    test()
+    def change_y_times(self, filename: str, y_times: str):
+        try:
+            y_times = float(y_times)
+        except ValueError:
+            print('Invalid Value.')
+            return False
+        self.dict_df_[filename]['y_times'] = y_times
+        return True
