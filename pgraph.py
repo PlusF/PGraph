@@ -72,7 +72,7 @@ class PGraph(tk.Frame):
     def create_config(self):
         # all parent frames
         self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Area')
-        self.frame_config = tk.LabelFrame(master=self.master, text='Load Data')
+        self.frame_config = tk.LabelFrame(master=self.master, text='Loaded Data')
         self.frame_fitting = tk.LabelFrame(master=self.master, text='Fitting')
         self.label_msg = tk.Label(master=self.master, textvariable=self.msg)
         self.frame_graph.grid(row=0, column=0, columnspan=3)
@@ -136,10 +136,12 @@ class PGraph(tk.Frame):
         self.labelframe_yaxis = tk.LabelFrame(master=self.frame_graph_setting, text='y軸ラベル')
         self.labelframe_range = tk.LabelFrame(master=self.frame_graph_setting, text='グラフ範囲')
         self.labelframe_individual = tk.LabelFrame(master=self.frame_graph_setting, text='個別設定')
+        self.labelframe_advanced = tk.LabelFrame(master=self.frame_graph_setting, text='一括設定')
         self.labelframe_xaxis.grid(row=0, column=0, columnspan=2, sticky=tk.W)
         self.labelframe_yaxis.grid(row=1, column=0, columnspan=2, sticky=tk.W)
         self.labelframe_range.grid(row=2, column=0, columnspan=2, sticky=tk.W)
         self.labelframe_individual.grid(row=3, column=0, columnspan=2, sticky=tk.W)
+        self.labelframe_advanced.grid(row=4, column=0, columnspan=2, sticky=tk.W)
 
         # xaxis, yaxis
         self.x_label = tk.IntVar(value=2)
@@ -204,6 +206,15 @@ class PGraph(tk.Frame):
         self.entry_y_times.grid(row=3, column=1)
         self.button_apply.grid(row=4, column=0)
         self.button_reset.grid(row=4, column=1)
+
+        # advanced
+        self.y_shift_each_value = tk.DoubleVar(value=0)
+        self.entry_y_shift_each = tk.Entry(master=self.labelframe_advanced, textvariable=self.y_shift_each_value, width=5, justify=tk.CENTER)
+        self.label_y_shift_each = tk.Label(master=self.labelframe_advanced, text='ずつy方向にずらす')
+        self.button_apply_advanced = tk.Button(master=self.labelframe_advanced, text='適用', width=10, command=self.apply_advanced)
+        self.entry_y_shift_each.grid(row=0, column=0)
+        self.label_y_shift_each.grid(row=0, column=1)
+        self.button_apply_advanced.grid(row=1, column=0, columnspan=2)
 
     def clear(self):
         for obj in self.ax.lines + self.ax.collections:
@@ -308,6 +319,13 @@ class PGraph(tk.Frame):
             self.dl.change_linestyle(filename, linestyle)
             self.dl.change_y_shift(filename, y_shift)
             self.dl.change_y_times(filename, y_times)
+
+        self.draw()
+
+    def apply_advanced(self, event=None):
+        for i in range(self.dl.get_len_dict()):
+            filename = self.listbox_asc.get(i)
+            self.dl.dict_df_[filename]['y_shift'] = i * self.y_shift_each_value.get()
 
         self.draw()
 
