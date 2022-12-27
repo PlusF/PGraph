@@ -16,7 +16,7 @@ class DataLoader:
             return False
 
         df = self.load_asc(filename)
-        self.dict_df_[filename] = {'data': df, 'color': 'k', 'linestyle': 'solid', 'y_shift': 0, 'y_times': 1}
+        self.dict_df_[filename] = {'data': df, 'color': 'black', 'linestyle': 'solid', 'y_shift': 0, 'y_times': 1, 'highlight': False}
         return True
 
     def load_files(self, filenames: list):
@@ -59,6 +59,18 @@ class DataLoader:
     def get_df(self, key: str):
         return self.dict_df_[key]['data']
 
+    def get_color(self, key: str):
+        return self.dict_df_[key]['color']
+
+    def get_linestyle(self, key: str):
+        return self.dict_df_[key]['linestyle']
+
+    def get_y_shift(self, key: str):
+        return self.dict_df_[key]['y_shift']
+
+    def get_y_times(self, key: str):
+        return self.dict_df_[key]['y_times']
+
     def get_dfs(self):
         dfs = [item['data'] for item in self.dict_df_.values()]
         return dfs
@@ -68,7 +80,7 @@ class DataLoader:
 
     def reset_option(self):
         for name, item in self.dict_df_.items():
-            self.dict_df_[name] = {'data': item['data'], 'color': 'k', 'linestyle': 'solid', 'y_shift': 0, 'y_times': 1}
+            self.dict_df_[name] = {'data': item['data'], 'color': 'black', 'linestyle': 'solid', 'y_shift': 0, 'y_times': 1, 'highlight': False}
 
     def delete_file(self, key: str):
         if key not in self.dict_df_:
@@ -89,20 +101,23 @@ class DataLoader:
         self.dict_df_[filename]['color'] = color
         return True
 
-    def change_y_shift(self, filename: str, y_shift: str):
-        try:
-            y_shift = float(y_shift)
-        except ValueError:
-            print('Invalid Value.')
-            return False
+    def change_linestyle(self, filename: str, linestyle: str):
+        self.dict_df_[filename]['linestyle'] = linestyle
+        return True
+
+    def change_y_shift(self, filename: str, y_shift: float):
         self.dict_df_[filename]['y_shift'] = y_shift
         return True
 
-    def change_y_times(self, filename: str, y_times: str):
-        try:
-            y_times = float(y_times)
-        except ValueError:
-            print('Invalid Value.')
-            return False
+    def change_y_times(self, filename: str, y_times: float):
         self.dict_df_[filename]['y_times'] = y_times
+        return True
+
+    def set_highlight(self, filename: str):
+        self.dict_df_[filename]['highlight'] = True
+        return True
+
+    def reset_highlight(self):
+        for filename, item in self.dict_df_.items():
+            self.dict_df_[filename]['highlight'] = False
         return True
