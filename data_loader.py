@@ -6,6 +6,13 @@ class DataLoader:
     def __init__(self):
         self.dict_df_ = {}
 
+    def load_files(self, filenames: list):
+        ret = True
+        for filename in filenames:
+            if not self.load_file(filename):
+                ret = False
+        return ret
+
     def load_file(self, filename: str):
         if filename.split('.')[-1] not in ['asc', 'txt']:
             print(f'ascまたはtxtファイルを選択してください．：{filename}')
@@ -19,27 +26,24 @@ class DataLoader:
         self.dict_df_[filename] = {'data': df, 'color': 'black', 'linestyle': 'solid', 'y_shift': 0, 'y_times': 1, 'highlight': False}
         return True
 
-    def load_files(self, filenames: list):
-        ret = True
-        for filename in filenames:
-            if not self.load_file(filename):
-                ret = False
-        return ret
-
     def load_asc(self, filename: str):
-        df = pd.read_csv(filename, sep='[:\t]', header=None, engine='python')
-        if df.shape[0] == 1057:  # 最近のファイルは情報量が増えた
+        df = pd.read_csv(filename, sep='[,:\t]', header=None, engine='python', index_col=False)
+
+        if df.shape[0] == 1015:
+            print('Renishaw Ramanから出力されたファイルを読み込みました．')
+        elif df.shape[0] == 1024:  # AutoRayleighで出力したascファイルのとき
+            print('AutoRayleighから出力されたファイルを読み込みました．')
+        elif df.shape[0] in [1202, 1203]:  # UV-Vis-NIR
+            print('UV-Vis-NIRから出力されたファイルを読み込みました．')
+            df = pd.read_csv(filename, sep='[,:\t]', header=None, engine='python', skiprows=2)
+        elif df.shape[0] == 1057:  # 最近のファイルは情報量が増えた
             print('Solisから出力されたファイルを読み込みました．')
             df = df.loc[30:, 0:1]
             df = df.reset_index(drop=True)
-        if df.shape[0] > 1024:  # sifからbatch conversionで変換したascファイルのとき
+        elif df.shape[0] > 1024:  # sifからbatch conversionで変換したascファイルのとき
             print('Solisから出力されたファイルを読み込みました．')
             df = df.loc[26:, 0:1]
             df = df.reset_index(drop=True)
-        elif df.shape[0] == 1024:  # AutoRayleighで出力したascファイルのとき
-            print('AutoRayleighから出力されたファイルを読み込みました．')
-        elif df.shape[0] == 1015:
-            print('Renishaw Ramanから出力されたファイルを読み込みました．')
         else:
             print('未確認のファイル形式です．')
         df.columns = ['x', 'y']

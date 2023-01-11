@@ -151,11 +151,13 @@ class PGraph(tk.Frame):
         self.y_label = tk.IntVar(value=1)
         self.radio_y_1 = tk.Radiobutton(master=self.labelframe_yaxis, text='Intensity [arb. units]', value=1, variable=self.y_label, command=self.update_option)
         self.radio_y_2 = tk.Radiobutton(master=self.labelframe_yaxis, text='Counts', value=2, variable=self.y_label, command=self.update_option)
+        self.radio_y_3 = tk.Radiobutton(master=self.labelframe_yaxis, text='Absorbance [arb. units]', value=3, variable=self.y_label, command=self.update_option)
         self.radio_x_1.grid(row=0, column=0, sticky=tk.W)
         self.radio_x_2.grid(row=1, column=0, sticky=tk.W)
         self.radio_x_3.grid(row=2, column=0, sticky=tk.W)
         self.radio_y_1.grid(row=0, column=0, sticky=tk.W)
         self.radio_y_2.grid(row=1, column=0, sticky=tk.W)
+        self.radio_y_3.grid(row=2, column=0, sticky=tk.W)
 
         # range
         self.label_min = tk.Label(master=self.labelframe_range, text='min')
@@ -226,7 +228,7 @@ class PGraph(tk.Frame):
         xlims = {'min': [1e10], 'max': [0]}
         ylims = {'min': [1e10], 'max': [0]}
         for item in self.dl.get_dict().values():
-            df = item['data']
+            df = item['data'].copy()
             color = item['color']
             linestyle = item['linestyle']
             y_shift = item['y_shift']
@@ -264,6 +266,9 @@ class PGraph(tk.Frame):
         elif self.y_label.get() == 2:
             self.ax.set_yticks(np.linspace(0, round(self.ax.get_ylim()[1], -2), 5))
             self.ax.set_ylabel('Counts')
+        elif self.y_label.get() == 3:
+            self.ax.set_yticks([])
+            self.ax.set_ylabel('Absorbance [arb. units]')
 
         if self.if_show.get():
             self.fitter.draw(self.ax)
@@ -368,7 +373,17 @@ class PGraph(tk.Frame):
         self.draw()
 
     def fit(self):
-        df_fit = pd.concat(self.dl.get_dfs(), axis=0)
+        # y_shift, y_timesの適用
+        df_all = []
+        for filename, value in self.dl.get_dict().items():
+            df = value['data'].copy()
+            y_times = value['y_times']
+            y_shift = value['y_shift']
+            df['y'] *= y_times
+            df['y'] += y_shift
+            df_all.append(df)
+
+        df_fit = pd.concat(df_all, axis=0)
         if df_fit is None:
             self.msg.set('データが見つかりません．')
             return False
@@ -382,6 +397,7 @@ class PGraph(tk.Frame):
         x = df_fit.x.values
         if self.x_label.get() == 2:  # エネルギー
             x = 1240 / x
+
         y = df_fit.y.values
 
         self.fitter.load_data(x, y)
@@ -395,6 +411,7 @@ class PGraph(tk.Frame):
             self.msg.set('フィッティングに成功しました．')
         else:
             self.msg.set('フィッティングに失敗しました．パラメータを変えてください．')
+            self.if_show.set(False)
             return
 
         self.show_params_fit()
@@ -409,6 +426,8 @@ class PGraph(tk.Frame):
                 text += str(round(param, 2)) + ' '
             else:
                 text += str(round(param, 2)) + '\n'
+        self.text_params.delete(1.0, tk.END)
+        self.text_params.insert(1.0, text)
         self.text_params_fit.delete(1.0, tk.END)
         self.text_params_fit.insert(1.0, text)
 
@@ -417,6 +436,7 @@ class PGraph(tk.Frame):
         filename += '/params.asc'
         self.fitter.load_params(filename)
         self.show_params_fit()
+        self.draw()
 
     def save_params(self):
         filename = self.dl.get_first_file_directory()
