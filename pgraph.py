@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import ttk
 from tkinterdnd2 import *
@@ -59,7 +60,13 @@ class PGraph(tk.Frame):
         # TODO: 縦ライン・横ラインを入れられるように
 
     def create_graph(self):
-        self.fig = plt.figure()
+        width = 800
+        height = 500
+        dpi = 50
+        if os.name == 'posix':
+            width /= 2
+            height /= 2
+        self.fig = plt.figure(figsize=(width / dpi, height / dpi), dpi=dpi)
         self.ax = self.fig.add_subplot()
         self.ax_x = self.ax.get_xaxis()
         self.ax_y = self.ax.get_yaxis()
@@ -89,20 +96,20 @@ class PGraph(tk.Frame):
         self.frame_graph_setting.grid(row=0, column=1)
 
         # config
-        self.listbox_asc = tk.Listbox(master=self.frame_config, width=80, height=6, selectmode='extended')
-        self.listbox_asc.bind('<Double-1>', self.select)
+        self.listbox_file = tk.Listbox(master=self.frame_config, width=50, height=6, selectmode='extended')
+        self.listbox_file.bind('<Double-1>', self.select)
         self.xbar = tk.Scrollbar(self.frame_config, orient=tk.HORIZONTAL)
         self.ybar = tk.Scrollbar(self.frame_config, orient=tk.VERTICAL)
-        self.xbar.config(command=self.listbox_asc.xview)
-        self.ybar.config(command=self.listbox_asc.yview)
-        self.listbox_asc.config(xscrollcommand=self.xbar.set)
-        self.listbox_asc.config(yscrollcommand=self.ybar.set)
+        self.xbar.config(command=self.listbox_file.xview)
+        self.ybar.config(command=self.listbox_file.yview)
+        self.listbox_file.config(xscrollcommand=self.xbar.set)
+        self.listbox_file.config(yscrollcommand=self.ybar.set)
         self.button_delete = tk.Button(master=self.frame_config, text='削除', width=10, height=1, command=self.delete)
         self.button_sort_ascending = tk.Button(master=self.frame_config, text='ソート（昇順）', width=10, height=1, command=self.sort_file_ascending)
         self.button_sort_descending = tk.Button(master=self.frame_config, text='ソート（降順）', width=10, height=1, command=self.sort_file_descending)
         self.button_reset_selection = tk.Button(master=self.frame_config, text='ハイライト解除', width=10, height=1, command=self.reset_selection)
         self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=10, height=1, command=self.quit)
-        self.listbox_asc.grid(row=0, column=0, columnspan=5)
+        self.listbox_file.grid(row=0, column=0, columnspan=5)
         self.xbar.grid(row=1, column=0, columnspan=5, sticky=tk.W + tk.E)
         self.ybar.grid(row=0, column=5, sticky=tk.N + tk.S)
         self.button_delete.grid(row=2, column=0)
@@ -112,14 +119,14 @@ class PGraph(tk.Frame):
         self.button_quit.grid(row=2, column=4)
 
         # fitting
-        self.label_description_1 = tk.Label(master=self.frame_fitting, text='位置 強度 幅 (BG)')
-        self.label_description_2 = tk.Label(master=self.frame_fitting, text='位置 強度 幅 (BG)')
+        self.label_description_1 = tk.Label(master=self.frame_fitting, text='位置 強度 幅(L) 幅(G) (BG)')
+        self.label_description_2 = tk.Label(master=self.frame_fitting, text='位置 強度 幅(L) 幅(G) (BG)')
         self.text_params = tk.Text(master=self.frame_fitting, width=20, height=5)
-        self.text_params.insert(1.0, '1.7 20000 0.2\n1.8 3000 0.2\n2.4 8000 0.4\n0')
+        self.text_params.insert(1.0, '1.7 20000 3 3\n1.8 3000 3 3\n2.4 8000 3 3\n0')
         self.text_params_fit = tk.Text(master=self.frame_fitting, width=20, height=5)
         self.button_fit = tk.Button(master=self.frame_fitting, text='Fit', width=10, command=self.fit)
         self.if_show = tk.BooleanVar(value=False)
-        self.check_fit = tk.Checkbutton(master=self.frame_fitting, variable=self.if_show, text='結果を描画')
+        self.check_fit = tk.Checkbutton(master=self.frame_fitting, variable=self.if_show, text='結果を描画', command=self.draw)
         self.button_load = tk.Button(master=self.frame_fitting, text='LOAD', width=10, command=self.load_params)
         self.button_save = tk.Button(master=self.frame_fitting, text='SAVE', width=10, command=self.save_params)
         self.label_description_1.grid(row=0, column=0, columnspan=2)
@@ -144,11 +151,11 @@ class PGraph(tk.Frame):
         self.labelframe_advanced.grid(row=4, column=0, columnspan=2, sticky=tk.W)
 
         # xaxis, yaxis
-        self.x_label = tk.IntVar(value=2)
+        self.x_label = tk.IntVar(value=1)
         self.radio_x_1 = tk.Radiobutton(master=self.labelframe_xaxis, text='波長 [nm]', value=1, variable=self.x_label, command=self.update_option)
         self.radio_x_2 = tk.Radiobutton(master=self.labelframe_xaxis, text='エネルギー [eV]', value=2, variable=self.x_label, command=self.update_option)
         self.radio_x_3 = tk.Radiobutton(master=self.labelframe_xaxis, text='ラマンシフト [cm-1]', value=3, variable=self.x_label, command=self.update_option)
-        self.y_label = tk.IntVar(value=1)
+        self.y_label = tk.IntVar(value=2)
         self.radio_y_1 = tk.Radiobutton(master=self.labelframe_yaxis, text='Intensity [arb. units]', value=1, variable=self.y_label, command=self.update_option)
         self.radio_y_2 = tk.Radiobutton(master=self.labelframe_yaxis, text='Counts', value=2, variable=self.y_label, command=self.update_option)
         self.radio_x_1.grid(row=0, column=0, sticky=tk.W)
@@ -225,26 +232,20 @@ class PGraph(tk.Frame):
 
         xlims = {'min': [1e10], 'max': [0]}
         ylims = {'min': [1e10], 'max': [0]}
-        for item in self.dl.get_dict().values():
-            df = item['data']
-            color = item['color']
-            linestyle = item['linestyle']
-            y_shift = item['y_shift']
-            y_times = item['y_times']
-            linewidth = 2 if item['highlight'] else 1
+        for spec in self.dl.spec_dict.values():
+            linewidth = 2 if spec.highlight else 1
 
-            x = df.x.values
+            x = spec.xdata
             if self.x_label.get() == 2:  # エネルギー
                 x = 1240 / x
+            y = spec.ydata * spec.y_times
 
-            y = df.y.values * y_times
-
-            self.ax.plot(x, y + y_shift, color=color, linestyle=linestyle, linewidth=linewidth)
+            self.ax.plot(x, y + spec.y_shift, color=spec.color, linestyle=spec.linestyle, linewidth=linewidth)
 
             xlims['min'].append(min(x))
             xlims['max'].append(max(x))
-            ylims['min'].append(min(y + y_shift))
-            ylims['max'].append(max(y + y_shift))
+            ylims['min'].append(min(y + spec.y_shift))
+            ylims['max'].append(max(y + spec.y_shift))
 
         xlim = [min(xlims['min']), max(xlims['max'])]
         ylim = [min(ylims['min']) * 0.9, max(ylims['max']) * 1.1]
@@ -308,87 +309,90 @@ class PGraph(tk.Frame):
             self.ax_y.set_ticks(np.linspace(*ylim, int(self.entry_yticks.get()) + 1))
 
     def update_option(self, event=None):
-        selected_index = self.listbox_asc.curselection()
+        selected_index = self.listbox_file.curselection()
         for index in selected_index:
-            filename = self.listbox_asc.get(index)
+            filename = self.listbox_file.get(index)
             color = self.combobox_color.get()
             linestyle = self.combobox_linestyle.get()
             y_shift = self.y_shift_value.get()
             y_times = self.y_times_value.get()
-            self.dl.change_color(filename, color)
-            self.dl.change_linestyle(filename, linestyle)
-            self.dl.change_y_shift(filename, y_shift)
-            self.dl.change_y_times(filename, y_times)
+            self.dl.spec_dict[filename].color = color
+            self.dl.spec_dict[filename].linestyle = linestyle
+            self.dl.spec_dict[filename].y_shift = y_shift
+            self.dl.spec_dict[filename].y_times = y_times
 
         self.draw()
 
     def apply_advanced(self, event=None):
-        for i in range(self.dl.get_len_dict()):
-            filename = self.listbox_asc.get(i)
-            self.dl.dict_df_[filename]['y_shift'] = i * self.y_shift_each_value.get()
-
+        for i in range(len(self.dl.spec_dict)):
+            filename = self.listbox_file.get(i)
+            self.dl.spec_dict[filename].y_shift = i * self.y_shift_each_value.get()
         self.draw()
 
     def load(self, event=None):
-        filenames = [f.replace('{', '').replace('}', '') for f in event.data.split('} {')]
-        ret = self.dl.load_files(filenames)
-        if ret:
-            self.msg.set('全てのファイルが正常に読み込まれました．')
-        else:
-            self.msg.set('一部のファイルが正常に読み込まれませんでした．')
+        filenames = event.data.split()
+        self.dl.load_files(filenames)
+        self.check_device(filenames[0])
         self.update_listbox()
         self.draw()
 
     def select(self, event=None):
         self.dl.reset_highlight()
-        selected_index = self.listbox_asc.curselection()
+        selected_index = self.listbox_file.curselection()
         for index in selected_index:
-            filename = self.listbox_asc.get(index)
-            self.dl.set_highlight(filename)
-            self.combobox_color.set(self.dl.get_color(filename))
-            self.y_shift_value.set(self.dl.get_y_shift(filename))
-            self.y_times_value.set(self.dl.get_y_times(filename))
-
+            filename = self.listbox_file.get(index)
+            self.dl.spec_dict[filename].highlight = True
+            self.combobox_color.set(self.dl.spec_dict[filename].color)
+            self.y_shift_value.set(self.dl.spec_dict[filename].y_shift)
+            self.y_times_value.set(self.dl.spec_dict[filename].y_times)
         self.draw()
 
     def reset_selection(self):
-        self.listbox_asc.select_clear(0, tk.END)
+        self.listbox_file.select_clear(0, tk.END)
         self.dl.reset_highlight()
-
         self.draw()
 
     def update_listbox(self):
-        self.listbox_asc.delete(0, tk.END)
-        loaded_filenames = self.dl.get_names()
+        self.listbox_file.delete(0, tk.END)
+        loaded_filenames = self.dl.spec_dict.keys()
         for filename in loaded_filenames:
-            self.listbox_asc.insert(tk.END, filename)
+            self.listbox_file.insert(tk.END, filename)
+
+    def check_device(self, filename):
+        device = self.dl.spec_dict[filename].device
+        if device == 'Renishaw':
+            self.x_label.set(3)
+        elif device == 'Andor':
+            self.x_label.set(2)
+        elif device == 'CCS':
+            self.x_label.set(2)
 
     def reset(self):
         self.dl.reset_option()
         self.draw()
 
     def fit(self):
-        df_fit = pd.concat(self.dl.get_dfs(), axis=0)
-        if df_fit is None:
-            self.msg.set('データが見つかりません．')
-            return False
-
+        df_fit = self.dl.concat_spec()
         df_fit = df_fit.sort_values('x', ascending=False)
-
-        # 表示範囲だけにトリミング
-        xlim, _ = self.get_graph_range()
-        df_fit = df_fit[(xlim[0] <= df_fit['x']) & (df_fit['x'] <= xlim[1])]
 
         x = df_fit.x.values
         if self.x_label.get() == 2:  # エネルギー
             x = 1240 / x
         y = df_fit.y.values
+        print(x)
+        print(y)
 
+        # 表示範囲だけにトリミング
+        xlim, _ = self.get_graph_range()
+        fit_range = (xlim[0] <= x) & (x <= xlim[1])
+        x = x[fit_range]
+        y = y[fit_range]
         self.fitter.load_data(x, y)
 
         params = self.text_params.get(1.0, tk.END)
         params = re.split('[\n ]', params)
         params = [float(p) for p in params if p != '']
+        print(params)
 
         self.fitter.set_params(params)
         if self.fitter.fit():
@@ -405,7 +409,7 @@ class PGraph(tk.Frame):
         params_fit = self.fitter.params_fit
         text = ''
         for i, param in enumerate(params_fit):
-            if i % 3 in [0, 1]:
+            if i % 4 in [0, 1, 2]:
                 text += str(round(param, 2)) + ' '
             else:
                 text += str(round(param, 2)) + '\n'
@@ -413,33 +417,44 @@ class PGraph(tk.Frame):
         self.text_params_fit.insert(1.0, text)
 
     def load_params(self):
-        filename = self.dl.get_first_file_directory()
-        filename += '/params.asc'
-        self.fitter.load_params(filename)
-        self.show_params_fit()
+        filename = self.listbox_file.get(0)
+        params = self.dl.spec_dict[filename].fitting
+        if len(params) == 0:
+            print('No params to load.')
+            return
+        self.fitter.set_params(params)
+        text = ''
+        for i, param in enumerate(params):
+            if i % 4 in [0, 1, 2]:
+                text += str(round(param, 2)) + ' '
+            else:
+                text += str(round(param, 2)) + '\n'
+        self.text_params.delete(1.0, tk.END)
+        self.text_params.insert(1.0, text)
 
     def save_params(self):
-        filename = self.dl.get_first_file_directory()
-        filename += '/params.asc'
-        self.fitter.save_params(filename)
+        for i in range(len(self.dl.spec_dict)):
+            filename = self.listbox_file.get(i)
+            self.dl.spec_dict[filename].fitting = self.fitter.params_fit
+            self.dl.save(filename)
 
     def delete(self):
-        selected_index = self.listbox_asc.curselection()
+        selected_index = self.listbox_file.curselection()
         for index in selected_index:
-            filename = self.listbox_asc.get(index)
+            filename = self.listbox_file.get(index)
             self.dl.delete_file(filename)
         for index in reversed(selected_index):
-            self.listbox_asc.delete(index)
+            self.listbox_file.delete(index)
 
     def sort_file_ascending(self):
-        self.listbox_asc.delete(0, tk.END)
-        for filename in sorted(self.dl.get_names()):
-            self.listbox_asc.insert(tk.END, filename)
+        self.listbox_file.delete(0, tk.END)
+        for filename in sorted(self.dl.spec_dict.keys()):
+            self.listbox_file.insert(tk.END, filename)
 
     def sort_file_descending(self):
-        self.listbox_asc.delete(0, tk.END)
-        for filename in sorted(self.dl.get_names(), reverse=True):
-            self.listbox_asc.insert(tk.END, filename)
+        self.listbox_file.delete(0, tk.END)
+        for filename in sorted(self.dl.spec_dict.keys(), reverse=True):
+            self.listbox_file.insert(tk.END, filename)
 
     def quit(self):
         quit_me(self.master)
