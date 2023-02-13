@@ -1,127 +1,159 @@
-import os
+from dataclasses import dataclass
+import numpy as np
 import pandas as pd
+
+
+@dataclass
+class Spectrum:
+    xdata: np.ndarray
+    ydata: np.ndarray
+    device: str
+    abs_path_raw: str
+    abs_path_ref: str
+    calibration: list
+    description: list
+    fitting: list[float]
+    color: str = 'black'
+    linestyle: str = 'solid'
+    y_shift: float = 0
+    y_times: float = 1
+    highlight: bool = False
+
+    def __post_init__(self):
+        if self.xdata.shape[0] == 1015:
+            self.device = 'Renishaw'
+        elif self.xdata.shape[0] == 1024:
+            self.device = 'Andor'
+        elif self.xdata.shape[0] == 3648:
+            self.device = 'CCS'
+        else:
+            self.device = 'Unknown'
+
+    def reset_appearance(self):
+        self.color = 'black'
+        self.linestyle = 'solid'
+        self.y_shift = 0
+        self.y_times = 1
+        self.highlight = False
+
+
+def extract_keyword(lines, keyword):
+    def process(s):
+        s = s.strip('# ')
+        s = s.strip('\n')
+        return s.split(': ')
+
+    for line in lines:
+        if keyword in line:
+            name, value = process(line)
+            break
+    else:
+        value = None
+    return value
+
+
+def find_skip(lines: list[str]) -> int:
+    numeric_str_list = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ',', '\t', '\n']
+    for i, line in enumerate(lines):
+        for s in line:
+            if s not in numeric_str_list:  # if there is a non-numeric character
+                break
+        else:  # if all the character is numeric
+            break
+    else:  # if all the lines are non-numeric
+        i = -1
+    return i
+
+
+def find_sep(filename: str, skip_rows: int) -> str:
+    sep_list = ['\t', ',']
+    num_cols_list = []
+    for sep in sep_list:
+        df = pd.read_csv(filename, sep=sep, skiprows=skip_rows)
+        num_cols_list.append(df.shape[1])
+    return sep_list[num_cols_list.index(max(num_cols_list))]
 
 
 class DataLoader:
     def __init__(self):
-        self.dict_df_ = {}
-
-    def load_files(self, filenames: list):
-        ret = True
-        for filename in filenames:
-            if not self.load_file(filename):
-                ret = False
-        return ret
+        self.spec_dict: dict[str: Spectrum] = {}
 
     def load_file(self, filename: str):
-        if filename.split('.')[-1] not in ['asc', 'txt']:
-            print(f'ascまたはtxtファイルを選択してください．：{filename}')
-            return False
-
-        if filename in self.dict_df_:
+        if filename in self.spec_dict.keys():
             print(f'このファイルは既に読み込まれています．：{filename}')
             return False
 
-        df = self.load_asc(filename)
-        self.dict_df_[filename] = {'data': df, 'color': 'black', 'linestyle': 'solid', 'y_shift': 0, 'y_times': 1, 'highlight': False}
-        return True
+        with open(filename, 'r') as f:
+            lines = f.readlines()
 
-    def load_asc(self, filename: str):
-        df = pd.read_csv(filename, sep='[,:\t]', header=None, engine='python', index_col=False)
+        spectrum_dict = {}
+        for keyword in ['abs_path_raw', 'abs_path_ref', 'calibration', 'description', 'fitting', 'device']:
+            value = extract_keyword(lines, keyword)
 
-        if df.shape[0] == 1015:
-            print('Renishaw Ramanから出力されたファイルを読み込みました．')
-        elif df.shape[0] == 1024:  # AutoRayleighで出力したascファイルのとき
-            print('AutoRayleighから出力されたファイルを読み込みました．')
-        elif df.shape[0] in [1202, 1203]:  # UV-Vis-NIR
-            print('UV-Vis-NIRから出力されたファイルを読み込みました．')
-            df = pd.read_csv(filename, sep='[,:\t]', header=None, engine='python', skiprows=2)
-        elif df.shape[0] == 1057:  # 最近のファイルは情報量が増えた
-            print('Solisから出力されたファイルを読み込みました．')
-            df = df.loc[30:, 0:1]
-            df = df.reset_index(drop=True)
-        elif df.shape[0] > 1024:  # sifからbatch conversionで変換したascファイルのとき
-            print('Solisから出力されたファイルを読み込みました．')
-            df = df.loc[26:, 0:1]
-            df = df.reset_index(drop=True)
+            if keyword == 'fitting':
+                if value is not None:
+                    value = [value.split()[0]] + list(map(float, value.split()[1:]))
+                else:
+                    value = []
+
+            spectrum_dict[keyword] = value
+
+        skip_rows = find_skip(lines)
+        if skip_rows == -1:
+            raise ValueError('No numeric data found. Check the input file again.')
+        sep = find_sep(filename, skip_rows)
+        df = pd.read_csv(filename, sep=sep, skiprows=skip_rows, header=None)
+        if df.shape[1] == 1:
+            spectrum_dict['xdata'] = np.arange(1, df.shape[0] + 1)
+            spectrum_dict['ydata'] = df.iloc[:, 0].values
         else:
-            print('未確認のファイル形式です．')
-        df.columns = ['x', 'y']
-        df = df.astype(float)
+            spectrum_dict['xdata'] = df.iloc[:, 0].values
+            spectrum_dict['ydata'] = df.iloc[:, 1].values
 
+        self.spec_dict[filename] = Spectrum(**spectrum_dict)
+
+    def load_files(self, filenames: list):
+        for filename in filenames:
+            self.load_file(filename)
+
+    def concat_spec(self):
+        xdata_list = []
+        ydata_list = []
+        for spec in self.spec_dict.values():
+            xdata_list.append(spec.xdata)
+            ydata_list.append(spec.ydata)
+        xdata_all = np.hstack(xdata_list)
+        ydata_all = np.hstack(ydata_list)
+        data = np.vstack([xdata_all, ydata_all]).T
+        df = pd.DataFrame(data=data, columns=['x', 'y'])
         return df
 
-    def get_dict(self):
-        return self.dict_df_
-
-    def get_len_dict(self):
-        return len(self.dict_df_)
-
-    def get_names(self):
-        return list(self.dict_df_.keys())
-
-    def get_df(self, key: str):
-        return self.dict_df_[key]['data']
-
-    def get_color(self, key: str):
-        return self.dict_df_[key]['color']
-
-    def get_linestyle(self, key: str):
-        return self.dict_df_[key]['linestyle']
-
-    def get_y_shift(self, key: str):
-        return self.dict_df_[key]['y_shift']
-
-    def get_y_times(self, key: str):
-        return self.dict_df_[key]['y_times']
-
-    def get_dfs(self):
-        dfs = [item['data'] for item in self.dict_df_.values()]
-        return dfs
-
-    def get_first_file_directory(self):
-        return os.path.dirname(self.get_names()[0])
-
     def reset_option(self):
-        for name, item in self.dict_df_.items():
-            self.dict_df_[name] = {'data': item['data'], 'color': 'black', 'linestyle': 'solid', 'y_shift': 0, 'y_times': 1, 'highlight': False}
+        for spec in self.spec_dict.values():
+            spec.reset_appearance()
 
-    def delete_file(self, key: str):
-        if key not in self.dict_df_:
-            print(f'削除するファイルが見つかりません．：{key}')
-            return False
-        self.dict_df_.pop(key)
-        print(f'{key} を削除しました．')
-        return True
+    def delete_file(self, filename: str):
+        del self.spec_dict[filename]
 
-    def delete_files(self, filenames: list):
-        ret = True
+    def delete_files(self, filenames: list[str]):
         for filename in filenames:
-            if not self.delete_file(filename):
-                ret = False
-        return ret
-
-    def change_color(self, filename: str, color: str):
-        self.dict_df_[filename]['color'] = color
-        return True
-
-    def change_linestyle(self, filename: str, linestyle: str):
-        self.dict_df_[filename]['linestyle'] = linestyle
-        return True
-
-    def change_y_shift(self, filename: str, y_shift: float):
-        self.dict_df_[filename]['y_shift'] = y_shift
-        return True
-
-    def change_y_times(self, filename: str, y_times: float):
-        self.dict_df_[filename]['y_times'] = y_times
-        return True
-
-    def set_highlight(self, filename: str):
-        self.dict_df_[filename]['highlight'] = True
-        return True
+            self.delete_file(filename)
 
     def reset_highlight(self):
-        for filename, item in self.dict_df_.items():
-            self.dict_df_[filename]['highlight'] = False
-        return True
+        for spec in self.spec_dict.values():
+            spec.highlight = False
+
+    def save(self, filename):
+        spec = self.spec_dict[filename]
+        data = np.vstack((spec.xdata.T, spec.ydata.T)).T
+        with open(filename, 'w') as f:
+            f.write(f'# abs_path_raw: {spec.abs_path_raw}\n')
+            f.write(f'# abs_path_ref: {spec.abs_path_ref}\n')
+            f.write(f'# calibration: {spec.calibration}\n')
+            f.write(f'# device: {spec.device}\n')
+            f.write(f'# description: {spec.description}\n')
+            fitting_str = spec.fitting.__str__().replace(',', '').replace("'", '').replace('\n', '').replace('[', '').replace(']', '')
+            f.write(f'# fitting: {fitting_str}\n\n')
+
+            for x, y in data:
+                f.write(f'{x},{y}\n')
