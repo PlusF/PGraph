@@ -4,15 +4,21 @@ import numpy as np
 import matplotlib.cm as cm
 
 
-def lorentzian(x, intensity, center, w):
-    y = w ** 2 / (4 * (x - intensity) ** 2 + w ** 2)
-    return center * y
+def Lorentzian(x, center, intensity, w):
+    y = w ** 2 / (4 * (x - center) ** 2 + w ** 2)
+    return intensity * y
 
 
-def voigt(xval, *params):
-    center, intensity, lw, gw = params
+def Gaussian(x, center, intensity, sigma):
+    y = np.exp(-1 / 2 * (x - center) ** 2 / sigma ** 2)
+    return intensity * y
+
+
+def Voigt(xval, center, intensity, lw, gw):
     # lw : HWFM of Lorentzian
     # gw : sigma of Gaussian
+    if gw == 0:
+        gw = 1e-10
     z = (xval - center + 1j*lw) / (gw * np.sqrt(2.0))
     w = wofz(z)
     model_y = w.real / (gw * np.sqrt(2.0*np.pi))
@@ -26,7 +32,8 @@ class Fit:
         self.y = None
         self.params = None
         self.num_func = 0
-        self.func = voigt
+        self.func = Voigt
+        self.num_params_per_func = 4
 
         self.y_sum = None
         self.y_list = []
@@ -38,19 +45,27 @@ class Fit:
         self.x = x
         self.y = y
 
+    def set_function(self, name):
+        if name == 'Lorentzian':
+            self.func = Lorentzian
+            self.num_params_per_func = 3
+        elif name == 'Gaussian':
+            self.func = Gaussian
+            self.num_params_per_func = 3
+        elif name == 'Voigt':
+            self.func = Voigt
+            self.num_params_per_func = 4
+
     def set_params(self, params):
         self.params = params
-        self.num_func = int(len(self.params) / 4)
+        self.num_func = int(len(self.params) / self.num_params_per_func)
 
     def superposition(self, x, *params):
         # 全てのyを足し合わせ
         self.y_sum = np.zeros_like(x)
         for i in range(self.num_func):
-            center = params[i * 4 + 0]
-            intensity = params[i * 4 + 1]
-            lw = params[i * 4 + 2]
-            gw = params[i * 4 + 3]
-            self.y_sum += self.func(x, center, intensity, lw, gw)
+            p = params[i * self.num_params_per_func:(i + 1) * self.num_params_per_func]
+            self.y_sum += self.func(x, *p)
 
         # バックグラウンドを追加
         self.y_sum = self.y_sum + params[-1]
@@ -59,40 +74,36 @@ class Fit:
 
     def fit(self):
         if self.params is None:
-            print('パラメータをセットしてください．')
             return False
         try:
             self.params_fit, self.pcov = curve_fit(self.superposition, self.x, self.y, p0=self.params)
         except RuntimeError:
-            print('パラメータを変えて実行しなおしてください．')
             return False
 
-        print('フィッティングに成功しました．')
         return True
 
     def make_y_list(self):
         if self.x is None or self.y is None or self.params_fit is None:
-            print('フィッティング後でなければ描画はできません．')
             return False
 
         self.y_list = []
         self.y_list.append(self.superposition(self.x, *self.params_fit))
         for i in range(self.num_func):
-            center = self.params_fit[i * 4 + 0]
-            intensity = self.params_fit[i * 4 + 1]
-            lw = self.params_fit[i * 4 + 2]
-            gw = self.params_fit[i * 4 + 3]
-            y = self.func(self.x, center, intensity, lw, gw)
+            p = self.params_fit[i * self.num_params_per_func:(i + 1) * self.num_params_per_func]
+            y = self.func(self.x, *p)
             self.y_list.append(y)
 
         # バックグラウンドを追加
         self.y_list.append(np.ones_like(self.x) * self.params_fit[-1])
+        return True
 
     def get_y_list(self):
         return self.y_list
 
     def draw(self, ax):
-        self.make_y_list()
+        ok = self.make_y_list()
+        if not ok:
+            return False
 
         for i, y in enumerate(self.y_list):
             if i == 0 or i == len(self.y_list) - 1:

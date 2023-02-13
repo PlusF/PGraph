@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+
 @dataclass
 class Spectrum:
     xdata: np.ndarray
@@ -21,7 +22,7 @@ class Spectrum:
     def __post_init__(self):
         if self.xdata.shape[0] == 1015:
             self.device = 'Renishaw'
-        elif self.xdata.shape[0] ==  1024:
+        elif self.xdata.shape[0] == 1024:
             self.device = 'Andor'
         elif self.xdata.shape[0] == 3648:
             self.device = 'CCS'
@@ -91,7 +92,7 @@ class DataLoader:
 
             if keyword == 'fitting':
                 if value is not None:
-                    value = list(map(float, value.split()))
+                    value = [value.split()[0]] + list(map(float, value.split()[1:]))
                 else:
                     value = []
 
@@ -151,7 +152,7 @@ class DataLoader:
             f.write(f'# calibration: {spec.calibration}\n')
             f.write(f'# device: {spec.device}\n')
             f.write(f'# description: {spec.description}\n')
-            fitting_str = spec.fitting.__str__().replace('\n', '')
+            fitting_str = spec.fitting.__str__().replace(',', '').replace("'", '').replace('\n', '').replace('[', '').replace(']', '')
             f.write(f'# fitting: {fitting_str}\n\n')
 
             for x, y in data:

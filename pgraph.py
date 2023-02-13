@@ -4,7 +4,6 @@ from tkinter import ttk
 from tkinterdnd2 import *
 import re
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from MyToolbar import MyToolbar
@@ -62,7 +61,7 @@ class PGraph(tk.Frame):
     def create_graph(self):
         width = 800
         height = 500
-        dpi = 50
+        dpi = 100
         if os.name == 'posix':
             width /= 2
             height /= 2
@@ -96,7 +95,7 @@ class PGraph(tk.Frame):
         self.frame_graph_setting.grid(row=0, column=1)
 
         # config
-        self.listbox_file = tk.Listbox(master=self.frame_config, width=50, height=6, selectmode='extended')
+        self.listbox_file = tk.Listbox(master=self.frame_config, width=70, height=8, selectmode='extended')
         self.listbox_file.bind('<Double-1>', self.select)
         self.xbar = tk.Scrollbar(self.frame_config, orient=tk.HORIZONTAL)
         self.ybar = tk.Scrollbar(self.frame_config, orient=tk.VERTICAL)
@@ -104,11 +103,11 @@ class PGraph(tk.Frame):
         self.ybar.config(command=self.listbox_file.yview)
         self.listbox_file.config(xscrollcommand=self.xbar.set)
         self.listbox_file.config(yscrollcommand=self.ybar.set)
-        self.button_delete = tk.Button(master=self.frame_config, text='削除', width=10, height=1, command=self.delete)
-        self.button_sort_ascending = tk.Button(master=self.frame_config, text='ソート（昇順）', width=10, height=1, command=self.sort_file_ascending)
-        self.button_sort_descending = tk.Button(master=self.frame_config, text='ソート（降順）', width=10, height=1, command=self.sort_file_descending)
-        self.button_reset_selection = tk.Button(master=self.frame_config, text='ハイライト解除', width=10, height=1, command=self.reset_selection)
-        self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=10, height=1, command=self.quit)
+        self.button_delete = tk.Button(master=self.frame_config, text='削除', width=12, height=1, command=self.delete)
+        self.button_sort_ascending = tk.Button(master=self.frame_config, text='ソート（昇順）', width=12, height=1, command=self.sort_file_ascending)
+        self.button_sort_descending = tk.Button(master=self.frame_config, text='ソート（降順）', width=12, height=1, command=self.sort_file_descending)
+        self.button_reset_selection = tk.Button(master=self.frame_config, text='ハイライト解除', width=12, height=1, command=self.reset_selection)
+        self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=12, height=1, command=self.quit)
         self.listbox_file.grid(row=0, column=0, columnspan=5)
         self.xbar.grid(row=1, column=0, columnspan=5, sticky=tk.W + tk.E)
         self.ybar.grid(row=0, column=5, sticky=tk.N + tk.S)
@@ -119,24 +118,29 @@ class PGraph(tk.Frame):
         self.button_quit.grid(row=2, column=4)
 
         # fitting
-        self.label_description_1 = tk.Label(master=self.frame_fitting, text='位置 強度 幅(L) 幅(G) (BG)')
-        self.label_description_2 = tk.Label(master=self.frame_fitting, text='位置 強度 幅(L) 幅(G) (BG)')
-        self.text_params = tk.Text(master=self.frame_fitting, width=20, height=5)
-        self.text_params.insert(1.0, '1.7 20000 3 3\n1.8 3000 3 3\n2.4 8000 3 3\n0')
-        self.text_params_fit = tk.Text(master=self.frame_fitting, width=20, height=5)
+        self.functions = ('Lorentzian', 'Gaussian', "Voigt")
+        self.function_fitting = tk.StringVar(value=self.functions[0])
+        self.optionmenu_fitting = tk.OptionMenu(self.frame_fitting, self.function_fitting, self.functions[0], *self.functions[1:], command=self.function_changed)
+        self.description_fitting = tk.StringVar(value='位置 強度 幅 (BG)')
+        self.label_description_1 = tk.Label(master=self.frame_fitting, textvariable=self.description_fitting)
+        self.label_description_2 = tk.Label(master=self.frame_fitting, textvariable=self.description_fitting)
+        self.text_params = tk.Text(master=self.frame_fitting, width=30, height=5)
+        self.text_params.insert(1.0, '1.7 20000 1\n1.8 3000 1\n0')
+        self.text_params_fit = tk.Text(master=self.frame_fitting, width=30, height=5)
         self.button_fit = tk.Button(master=self.frame_fitting, text='Fit', width=10, command=self.fit)
         self.if_show = tk.BooleanVar(value=False)
         self.check_fit = tk.Checkbutton(master=self.frame_fitting, variable=self.if_show, text='結果を描画', command=self.draw)
         self.button_load = tk.Button(master=self.frame_fitting, text='LOAD', width=10, command=self.load_params)
         self.button_save = tk.Button(master=self.frame_fitting, text='SAVE', width=10, command=self.save_params)
-        self.label_description_1.grid(row=0, column=0, columnspan=2)
-        self.label_description_2.grid(row=0, column=2, columnspan=2)
-        self.text_params.grid(row=1, column=0, columnspan=2)
-        self.text_params_fit.grid(row=1, column=2, columnspan=2)
-        self.button_fit.grid(row=2, column=0)
-        self.check_fit.grid(row=2, column=1)
-        self.button_load.grid(row=2, column=2)
-        self.button_save.grid(row=2, column=3)
+        self.optionmenu_fitting.grid(row=0, column=0, columnspan=4)
+        self.label_description_1.grid(row=1, column=0, columnspan=2)
+        self.label_description_2.grid(row=1, column=2, columnspan=2)
+        self.text_params.grid(row=2, column=0, columnspan=2)
+        self.text_params_fit.grid(row=2, column=2, columnspan=2)
+        self.button_fit.grid(row=3, column=0)
+        self.check_fit.grid(row=3, column=1)
+        self.button_load.grid(row=3, column=2)
+        self.button_save.grid(row=3, column=3)
 
         # labelframes in graph_setting
         self.labelframe_xaxis = tk.LabelFrame(master=self.frame_graph_setting, text='x軸ラベル')
@@ -371,6 +375,45 @@ class PGraph(tk.Frame):
         self.dl.reset_option()
         self.draw()
 
+    def get_params_from_text(self):
+        params = self.text_params.get(1.0, tk.END)
+        params = params.split('\n')
+        params = [p.split() for p in params]
+        params = list(filter(([]).__ne__, params))
+
+        return params
+
+    def function_changed(self, event=None):
+        pre_num = self.fitter.num_params_per_func
+        pre_params = self.get_params_from_text()
+
+        self.fitter.set_function(self.function_fitting.get())
+
+        if self.fitter.num_params_per_func == 3:
+            description = '位置 強度 幅 (BG)'
+            if pre_num == 4:
+                params_default = [' '.join(p[:-1]) for p in pre_params[:-1]] + pre_params[-1]
+                params_default = '\n'.join(params_default)
+            else:
+                params_default = [' '.join(p) for p in pre_params]
+                params_default = '\n'.join(params_default)
+        elif self.fitter.num_params_per_func == 4:
+            description = '位置 強度 幅(Lor) 幅(Gau) (BG)'
+            if pre_num == 3:
+                params_default = [' '.join(p + ['1']) for p in pre_params[:-1]] + pre_params[-1]
+                params_default = '\n'.join(params_default)
+            else:
+                params_default = [' '.join(p) for p in pre_params]
+                params_default = '\n'.join(params_default)
+        else:
+            description = ''
+            params_default = ''
+            print('Unknown function')
+
+        self.description_fitting.set(description)
+        self.text_params.delete(1.0, tk.END)
+        self.text_params.insert(1.0, params_default)
+
     def fit(self):
         df_fit = self.dl.concat_spec()
         df_fit = df_fit.sort_values('x', ascending=False)
@@ -379,8 +422,6 @@ class PGraph(tk.Frame):
         if self.x_label.get() == 2:  # エネルギー
             x = 1240 / x
         y = df_fit.y.values
-        print(x)
-        print(y)
 
         # 表示範囲だけにトリミング
         xlim, _ = self.get_graph_range()
@@ -389,10 +430,8 @@ class PGraph(tk.Frame):
         y = y[fit_range]
         self.fitter.load_data(x, y)
 
-        params = self.text_params.get(1.0, tk.END)
-        params = re.split('[\n ]', params)
-        params = [float(p) for p in params if p != '']
-        print(params)
+        params = self.get_params_from_text()
+        params = [float(value) for sublist in params for value in sublist]
 
         self.fitter.set_params(params)
         if self.fitter.fit():
@@ -401,20 +440,19 @@ class PGraph(tk.Frame):
             self.msg.set('フィッティングに失敗しました．パラメータを変えてください．')
             return
 
-        self.show_params_fit()
+        self.show_params(self.text_params_fit, self.fitter.params_fit)
 
         self.draw()
 
-    def show_params_fit(self):
-        params_fit = self.fitter.params_fit
+    def show_params(self, textbox, params):
         text = ''
-        for i, param in enumerate(params_fit):
-            if i % 4 in [0, 1, 2]:
-                text += str(round(param, 2)) + ' '
-            else:
-                text += str(round(param, 2)) + '\n'
-        self.text_params_fit.delete(1.0, tk.END)
-        self.text_params_fit.insert(1.0, text)
+        for i in range(self.fitter.num_func):
+            for j in range(self.fitter.num_params_per_func):
+                text += str(round(params[i * self.fitter.num_params_per_func + j], 2)) + ' '
+            text += '\n'
+        text += str(round(params[-1])) + '\n'
+        textbox.delete(1.0, tk.END)
+        textbox.insert(1.0, text)
 
     def load_params(self):
         filename = self.listbox_file.get(0)
@@ -422,20 +460,21 @@ class PGraph(tk.Frame):
         if len(params) == 0:
             print('No params to load.')
             return
+
+        # set function
+        func = params[0]
+        self.function_fitting.set(func)
+        self.function_changed()
+        # set parameters
+        params = params[1:]
         self.fitter.set_params(params)
-        text = ''
-        for i, param in enumerate(params):
-            if i % 4 in [0, 1, 2]:
-                text += str(round(param, 2)) + ' '
-            else:
-                text += str(round(param, 2)) + '\n'
-        self.text_params.delete(1.0, tk.END)
-        self.text_params.insert(1.0, text)
+
+        self.show_params(self.text_params, self.fitter.params)
 
     def save_params(self):
         for i in range(len(self.dl.spec_dict)):
             filename = self.listbox_file.get(i)
-            self.dl.spec_dict[filename].fitting = self.fitter.params_fit
+            self.dl.spec_dict[filename].fitting = [self.function_fitting.get()] + self.fitter.params_fit.tolist()
             self.dl.save(filename)
 
     def delete(self):
@@ -445,6 +484,8 @@ class PGraph(tk.Frame):
             self.dl.delete_file(filename)
         for index in reversed(selected_index):
             self.listbox_file.delete(index)
+
+        self.draw()
 
     def sort_file_ascending(self):
         self.listbox_file.delete(0, tk.END)
@@ -464,7 +505,6 @@ def main():
     # Drug & Drop が可能なTkオブジェクトを生成
     root = TkinterDnD.Tk()
     root.title('PGraph')
-    # root.geometry('1000x800')
 
     app = PGraph(master=root)
     root.drop_target_register(DND_FILES)
