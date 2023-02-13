@@ -32,8 +32,8 @@ class Fit:
         self.y = None
         self.params = None
         self.num_func = 0
-        self.func = Voigt
-        self.num_params_per_func = 4
+        self.func = Lorentzian
+        self.num_params_per_func = 3
 
         self.y_sum = None
         self.y_list = []
