@@ -1,13 +1,8 @@
 # PGraph
-python graph software for Rayleigh spectra
+python graph software for Rayleigh, Raman, Absorbance spectra
 
 # Install Libraries
-This program needs libraries below  
-numpy 1.22.3  
-pandas 1.4.2  
-matplotlib 3.5.2  
-tkinterdnd2 0.3.0  
-`pip install numpy pandas matplotlib tkinterdnd2`  
+`pip install -r requirements.txt`  
 
 # How to Use
 ## Load
