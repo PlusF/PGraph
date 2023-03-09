@@ -69,7 +69,7 @@ def find_sep(filename: str, skip_rows: int) -> str:
     sep_list = ['\t', ',']
     num_cols_list = []
     for sep in sep_list:
-        df = pd.read_csv(filename, sep=sep, skiprows=skip_rows)
+        df = pd.read_csv(filename, sep=sep, skiprows=skip_rows, header=None)
         num_cols_list.append(df.shape[1])
     return sep_list[num_cols_list.index(max(num_cols_list))]
 

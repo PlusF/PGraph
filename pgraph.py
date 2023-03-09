@@ -64,6 +64,7 @@ class PGraph(tk.Frame):
         if os.name == 'posix':
             width /= 2
             height /= 2
+            dpi /= 2
         self.fig = plt.figure(figsize=(width / dpi, height / dpi), dpi=dpi)
         self.ax = self.fig.add_subplot()
         self.ax_x = self.ax.get_xaxis()
@@ -154,18 +155,16 @@ class PGraph(tk.Frame):
         self.labelframe_advanced.grid(row=4, column=0, columnspan=2, sticky=tk.W)
 
         # xaxis, yaxis
+        self.x_labels = ('Wavelength [nm]', 'Energy [eV]', 'Raman Shift [cm-1]')
+        self.y_labels = ('Intensity [arb. units]', 'Counts', 'Absorbance')
         self.x_label = tk.IntVar(value=1)
-        self.radio_x_1 = tk.Radiobutton(master=self.labelframe_xaxis, text='波長 [nm]', value=1, variable=self.x_label, command=self.update_option)
-        self.radio_x_2 = tk.Radiobutton(master=self.labelframe_xaxis, text='エネルギー [eV]', value=2, variable=self.x_label, command=self.update_option)
-        self.radio_x_3 = tk.Radiobutton(master=self.labelframe_xaxis, text='ラマンシフト [cm-1]', value=3, variable=self.x_label, command=self.update_option)
+        for i, label in enumerate(self.x_labels):
+            radio_x = tk.Radiobutton(master=self.labelframe_xaxis, text=label, value=i+1, variable=self.x_label, command=self.update_option)
+            radio_x.grid(row=i, column=0, sticky=tk.W)
         self.y_label = tk.IntVar(value=2)
-        self.radio_y_1 = tk.Radiobutton(master=self.labelframe_yaxis, text='Intensity [arb. units]', value=1, variable=self.y_label, command=self.update_option)
-        self.radio_y_2 = tk.Radiobutton(master=self.labelframe_yaxis, text='Counts', value=2, variable=self.y_label, command=self.update_option)
-        self.radio_x_1.grid(row=0, column=0, sticky=tk.W)
-        self.radio_x_2.grid(row=1, column=0, sticky=tk.W)
-        self.radio_x_3.grid(row=2, column=0, sticky=tk.W)
-        self.radio_y_1.grid(row=0, column=0, sticky=tk.W)
-        self.radio_y_2.grid(row=1, column=0, sticky=tk.W)
+        for i, label in enumerate(self.y_labels):
+            radio_y = tk.Radiobutton(master=self.labelframe_yaxis, text=label, value=i+1, variable=self.y_label, command=self.update_option)
+            radio_y.grid(row=i, column=0, sticky=tk.W)
 
         # range
         self.label_min = tk.Label(master=self.labelframe_range, text='min')
@@ -179,6 +178,8 @@ class PGraph(tk.Frame):
         self.entry_ymin = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
         self.entry_ymax = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
         self.entry_yticks = tk.Entry(master=self.labelframe_range, textvariable=tk.StringVar(value='auto'), width=5, justify=tk.CENTER)
+        # self.if_legend = tk.BooleanVar(value=False)
+        # self.check_legend = tk.Checkbutton(master=self.labelframe_range, variable=self.if_legend, text='Legend', command=self.draw)
         self.label_min.grid(row=0, column=1)
         self.label_max.grid(row=0, column=2)
         self.label_ticks.grid(row=0, column=3)
@@ -190,6 +191,7 @@ class PGraph(tk.Frame):
         self.entry_ymin.grid(row=2, column=1)
         self.entry_ymax.grid(row=2, column=2)
         self.entry_yticks.grid(row=2, column=3)
+        # self.check_legend.grid(row=3, column=0, columnspan=4)
 
         # individual
         self.label_color = tk.Label(master=self.labelframe_individual, text='色')
@@ -255,22 +257,14 @@ class PGraph(tk.Frame):
 
         self.ax.set(xlim=xlim, ylim=ylim)
 
-        if self.x_label.get() == 1:  # 波長
-            self.ax.set_xlabel('Wavelength [nm]')
-        elif self.x_label.get() == 2:  # エネルギー
-            self.ax.set_xlabel('Energy [eV]')
-        elif self.x_label.get() == 3:  # ラマンシフト
-            self.ax.set_xlabel('Raman shift [cm-1]')
-
-        if self.y_label.get() == 1:
-            self.ax.set_yticks([])
-            self.ax.set_ylabel('Intensity [arb. units]')
-        elif self.y_label.get() == 2:
-            self.ax.set_yticks(np.linspace(0, round(self.ax.get_ylim()[1], -2), 5))
-            self.ax.set_ylabel('Counts')
+        self.ax.set_xlabel(self.x_labels[self.x_label.get() - 1])
+        self.ax.set_ylabel(self.y_labels[self.y_label.get() - 1])
 
         if self.if_show.get():
             self.fitter.draw(self.ax)
+
+        # if self.if_legend.get():
+        #     self.ax.legend()
 
         self.check_and_fix_range()
 
@@ -405,9 +399,8 @@ class PGraph(tk.Frame):
                 params_default = [' '.join(p) for p in pre_params]
                 params_default = '\n'.join(params_default)
         else:
-            description = ''
-            params_default = ''
             print('Unknown function')
+            return
 
         self.description_fitting.set(description)
         self.text_params.delete(1.0, tk.END)
@@ -457,7 +450,7 @@ class PGraph(tk.Frame):
         filename = self.listbox_file.get(0)
         params = self.dl.spec_dict[filename].fitting
         if len(params) == 0:
-            print('No params to load.')
+            self.msg.set('No params to load.')
             return
 
         # set function
@@ -501,7 +494,6 @@ class PGraph(tk.Frame):
 
 
 def main():
-    # Drug & Drop が可能なTkオブジェクトを生成
     root = TkinterDnD.Tk()
     root.title('PGraph')
 
