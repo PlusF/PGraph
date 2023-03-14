@@ -1,3 +1,4 @@
+from __future__ import annotations
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
@@ -29,7 +30,7 @@ class Spectrum:
         else:
             self.device = 'Unknown'
 
-    def reset_appearance(self):
+    def reset_appearance(self) -> None:
         self.color = 'black'
         self.linestyle = 'solid'
         self.y_shift = 0
@@ -37,8 +38,8 @@ class Spectrum:
         self.highlight = False
 
 
-def extract_keyword(lines, keyword):
-    def process(s):
+def extract_keyword(lines: list[str], keyword: str) -> str | None:
+    def process(s: str) -> list[str]:
         s = s.strip('# ')
         s = s.strip('\n')
         return s.split(': ')
@@ -78,10 +79,10 @@ class DataLoader:
     def __init__(self):
         self.spec_dict: dict[str: Spectrum] = {}
 
-    def load_file(self, filename: str):
+    def load_file(self, filename: str) -> None:
         if filename in self.spec_dict.keys():
             print(f'このファイルは既に読み込まれています．：{filename}')
-            return False
+            return
 
         with open(filename, 'r') as f:
             lines = f.readlines()
@@ -116,11 +117,11 @@ class DataLoader:
 
         self.spec_dict[filename] = Spectrum(**spectrum_dict)
 
-    def load_files(self, filenames: list):
+    def load_files(self, filenames: list[str]) -> None:
         for filename in filenames:
             self.load_file(filename)
 
-    def concat_spec(self):
+    def concat_spec(self) -> pd.DataFrame:
         xdata_list = []
         ydata_list = []
         for spec in self.spec_dict.values():
@@ -132,22 +133,22 @@ class DataLoader:
         df = pd.DataFrame(data=data, columns=['x', 'y'])
         return df
 
-    def reset_option(self):
+    def reset_option(self) -> None:
         for spec in self.spec_dict.values():
             spec.reset_appearance()
 
-    def delete_file(self, filename: str):
+    def delete_file(self, filename: str) -> None:
         del self.spec_dict[filename]
 
-    def delete_files(self, filenames: list[str]):
+    def delete_files(self, filenames: list[str]) -> None:
         for filename in filenames:
             self.delete_file(filename)
 
-    def reset_highlight(self):
+    def reset_highlight(self) -> None:
         for spec in self.spec_dict.values():
             spec.highlight = False
 
-    def save(self, filename):
+    def save(self, filename: str) -> None:
         spec = self.spec_dict[filename]
         data = np.vstack((spec.xdata.T, spec.ydata.T)).T
         filename_pgraph = '.'.join(filename.split('.')[:-1]) + '_pgraph.' + filename.split('.')[-1]
