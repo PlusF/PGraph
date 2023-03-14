@@ -1,20 +1,22 @@
+from typing import Literal
 from scipy.optimize import curve_fit
 from scipy.special import wofz
 import numpy as np
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 
 
-def Lorentzian(x, center, intensity, w):
+def Lorentzian(x: np.ndarray, center: float, intensity: float, w: float) -> np.ndarray:
     y = w ** 2 / (4 * (x - center) ** 2 + w ** 2)
     return intensity * y
 
 
-def Gaussian(x, center, intensity, sigma):
+def Gaussian(x: np.ndarray, center: float, intensity: float, sigma: float) -> np.ndarray:
     y = np.exp(-1 / 2 * (x - center) ** 2 / sigma ** 2)
     return intensity * y
 
 
-def Voigt(x, center, intensity, lw, gw):
+def Voigt(x: np.ndarray, center: float, intensity: float, lw: float, gw: float) -> np.ndarray:
     # lw : HWFM of Lorentzian
     # gw : sigma of Gaussian
     if gw == 0:
@@ -26,7 +28,7 @@ def Voigt(x, center, intensity, lw, gw):
     return intensity * model_y
 
 
-def linear(x, a, b):
+def linear(x: np.ndarray, a: float, b: float) -> np.ndarray:
     return a * x + b
 
 
@@ -45,11 +47,11 @@ class Fit:
         self.params_fit = None
         self.pcov = None
 
-    def load_data(self, x, y):
+    def set_data(self, x: np.ndarray, y: np.ndarray) -> None:
         self.x = x
         self.y = y
 
-    def set_function(self, name):
+    def set_function(self, name: Literal['Lorentzian', 'Gaussian', 'Voigt']) -> None:
         if name == 'Lorentzian':
             self.func = Lorentzian
             self.num_params_per_func = 3
@@ -60,11 +62,11 @@ class Fit:
             self.func = Voigt
             self.num_params_per_func = 4
 
-    def set_params(self, params):
+    def set_params(self, params: list[float]) -> None:
         self.params = params
         self.num_func = int(len(self.params) / self.num_params_per_func)
 
-    def superposition(self, x, *params):
+    def superposition(self, x: np.ndarray, *params) -> np.ndarray:
         # 全てのyを足し合わせ
         self.y_sum = np.zeros_like(x)
         for i in range(self.num_func):
@@ -76,7 +78,7 @@ class Fit:
 
         return self.y_sum
 
-    def fit(self):
+    def fit(self) -> bool:
         if self.params is None:
             return False
         try:
@@ -86,7 +88,7 @@ class Fit:
 
         return True
 
-    def make_y_list(self):
+    def make_y_list(self) -> bool:
         if self.x is None or self.y is None or self.params_fit is None:
             return False
 
@@ -102,10 +104,10 @@ class Fit:
 
         return True
 
-    def draw(self, ax):
+    def draw(self, ax: plt.axes) -> None:
         ok = self.make_y_list()
         if not ok:
-            return False
+            return
 
         for i, y in enumerate(self.y_list):
             if i == 0 or i == len(self.y_list) - 1:

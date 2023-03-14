@@ -9,31 +9,33 @@ from MyToolbar import MyToolbar
 from data_loader import DataLoader
 from fitting import Fit
 
-plt.rcParams['font.family'] = 'Arial'
-plt.rcParams['font.size'] = 15
 
-plt.rcParams['xtick.direction'] = 'in'
-plt.rcParams['ytick.direction'] = 'in'
-plt.rcParams['xtick.major.width'] = 1.0
-plt.rcParams['ytick.major.width'] = 1.0
-plt.rcParams['xtick.labelsize'] = 15
-plt.rcParams['ytick.labelsize'] = 15
+def set_rcParams() -> None:
+    plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['font.size'] = 15
 
-plt.rcParams['axes.linewidth'] = 1.0
-plt.rcParams['axes.labelsize'] = 18         # 軸ラベルのフォントサイズ
-plt.rcParams['axes.linewidth'] = 1.0        # グラフ囲う線の太さ
+    plt.rcParams['xtick.direction'] = 'in'
+    plt.rcParams['ytick.direction'] = 'in'
+    plt.rcParams['xtick.major.width'] = 1.0
+    plt.rcParams['ytick.major.width'] = 1.0
+    plt.rcParams['xtick.labelsize'] = 15
+    plt.rcParams['ytick.labelsize'] = 15
 
-plt.rcParams['legend.loc'] = 'best'        # 凡例の位置、"best"でいい感じのところ
-plt.rcParams['legend.frameon'] = True       # 凡例を囲うかどうか、Trueで囲う、Falseで囲わない
-plt.rcParams['legend.framealpha'] = 1.0     # 透過度、0.0から1.0の値を入れる
-plt.rcParams['legend.facecolor'] = 'white'  # 背景色
-plt.rcParams['legend.edgecolor'] = 'black'  # 囲いの色
-plt.rcParams['legend.fancybox'] = False     # Trueにすると囲いの四隅が丸くなる
+    plt.rcParams['axes.linewidth'] = 1.0
+    plt.rcParams['axes.labelsize'] = 18         # 軸ラベルのフォントサイズ
+    plt.rcParams['axes.linewidth'] = 1.0        # グラフ囲う線の太さ
 
-plt.rcParams['lines.linewidth'] = 1.0
-plt.rcParams['image.cmap'] = 'jet'
-plt.rcParams['figure.subplot.bottom'] = 0.2
-plt.rcParams['figure.subplot.left'] = 0.2
+    plt.rcParams['legend.loc'] = 'best'        # 凡例の位置、"best"でいい感じのところ
+    plt.rcParams['legend.frameon'] = True       # 凡例を囲うかどうか、Trueで囲う、Falseで囲わない
+    plt.rcParams['legend.framealpha'] = 1.0     # 透過度、0.0から1.0の値を入れる
+    plt.rcParams['legend.facecolor'] = 'white'  # 背景色
+    plt.rcParams['legend.edgecolor'] = 'black'  # 囲いの色
+    plt.rcParams['legend.fancybox'] = False     # Trueにすると囲いの四隅が丸くなる
+
+    plt.rcParams['lines.linewidth'] = 1.0
+    plt.rcParams['image.cmap'] = 'jet'
+    plt.rcParams['figure.subplot.bottom'] = 0.2
+    plt.rcParams['figure.subplot.left'] = 0.2
 
 
 def quit_me(root_window):
@@ -56,8 +58,9 @@ class PGraph(tk.Frame):
         self.master.bind("<Return>", self.update_option)
 
         # TODO: 縦ライン・横ラインを入れられるように
+        # TODO: legend機能つける？
 
-    def create_graph(self):
+    def create_graph(self) -> None:
         width = 800
         height = 500
         dpi = 100
@@ -75,7 +78,7 @@ class PGraph(tk.Frame):
         self.ax.set_xlabel('Energy [eV]')
         self.ax.set_ylabel('Intensity [arb. units]')
 
-    def create_config(self):
+    def create_config(self) -> None:
         # all parent frames
         self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Area')
         self.frame_config = tk.LabelFrame(master=self.master, text='Loaded Data')
@@ -228,11 +231,11 @@ class PGraph(tk.Frame):
         self.label_y_shift_each.grid(row=0, column=1)
         self.button_apply_advanced.grid(row=1, column=0, columnspan=2)
 
-    def clear(self):
+    def clear(self) -> None:
         for obj in self.ax.lines + self.ax.collections:
             obj.remove()
 
-    def draw(self):
+    def draw(self) -> None:
         self.clear()
 
         xlims = {'min': [1e10], 'max': [0]}
@@ -270,7 +273,7 @@ class PGraph(tk.Frame):
 
         self.canvas.draw()
 
-    def get_graph_range(self):
+    def get_graph_range(self) -> [list[float, float], list[float, float]]:
         xmin = self.entry_xmin.get()
         xmax = self.entry_xmax.get()
         ymin = self.entry_ymin.get()
@@ -294,7 +297,7 @@ class PGraph(tk.Frame):
 
         return [xmin, xmax], [ymin, ymax]
 
-    def check_and_fix_range(self):
+    def check_and_fix_range(self) -> None:
         xlim, ylim = self.get_graph_range()
         self.ax.set(xlim=xlim, ylim=ylim)
 
@@ -305,7 +308,7 @@ class PGraph(tk.Frame):
         if self.entry_yticks.get() != 'auto':
             self.ax_y.set_ticks(np.linspace(*ylim, int(self.entry_yticks.get()) + 1))
 
-    def update_option(self, event=None):
+    def update_option(self, event=None) -> None:
         selected_index = self.listbox_file.curselection()
         for index in selected_index:
             filename = self.listbox_file.get(index)
@@ -320,20 +323,20 @@ class PGraph(tk.Frame):
 
         self.draw()
 
-    def apply_advanced(self, event=None):
+    def apply_advanced(self, event=None) -> None:
         for i in range(len(self.dl.spec_dict)):
             filename = self.listbox_file.get(i)
             self.dl.spec_dict[filename].y_shift = i * self.y_shift_each_value.get()
         self.draw()
 
-    def load(self, event=None):
+    def load(self, event: TkinterDnD.DnDEvent=None) -> None:
         filenames = event.data.split()
         self.dl.load_files(filenames)
         self.check_device(filenames[0])
         self.update_listbox()
         self.draw()
 
-    def select(self, event=None):
+    def select(self, event=None) -> None:
         self.dl.reset_highlight()
         selected_index = self.listbox_file.curselection()
         for index in selected_index:
@@ -344,18 +347,18 @@ class PGraph(tk.Frame):
             self.y_times_value.set(self.dl.spec_dict[filename].y_times)
         self.draw()
 
-    def reset_selection(self):
+    def reset_selection(self) -> None:
         self.listbox_file.select_clear(0, tk.END)
         self.dl.reset_highlight()
         self.draw()
 
-    def update_listbox(self):
+    def update_listbox(self) -> None:
         self.listbox_file.delete(0, tk.END)
         loaded_filenames = self.dl.spec_dict.keys()
         for filename in loaded_filenames:
             self.listbox_file.insert(tk.END, filename)
 
-    def check_device(self, filename):
+    def check_device(self, filename: str) -> None:
         device = self.dl.spec_dict[filename].device
         if device == 'Renishaw':
             self.x_label.set(3)
@@ -364,11 +367,11 @@ class PGraph(tk.Frame):
         elif device == 'CCS':
             self.x_label.set(2)
 
-    def reset(self):
+    def reset(self) -> None:
         self.dl.reset_option()
         self.draw()
 
-    def get_params_from_text(self):
+    def get_params_from_text(self) -> list[list[str]]:
         params = self.text_params.get(1.0, tk.END)
         params = params.split('\n')
         params = [p.split() for p in params]
@@ -376,7 +379,7 @@ class PGraph(tk.Frame):
 
         return params
 
-    def function_changed(self, event=None):
+    def function_changed(self, event=None) -> None:
         pre_num = self.fitter.num_params_per_func
         pre_params = self.get_params_from_text()
 
@@ -406,7 +409,7 @@ class PGraph(tk.Frame):
         self.text_params.delete(1.0, tk.END)
         self.text_params.insert(1.0, params_default)
 
-    def fit(self):
+    def fit(self) -> None:
         df_fit = self.dl.concat_spec()
         df_fit = df_fit.sort_values('x', ascending=False)
 
@@ -420,7 +423,7 @@ class PGraph(tk.Frame):
         fit_range = (xlim[0] <= x) & (x <= xlim[1])
         x = x[fit_range]
         y = y[fit_range]
-        self.fitter.load_data(x, y)
+        self.fitter.set_data(x, y)
 
         params = self.get_params_from_text()
         params = [float(value.replace(r'\x7f308', '')) for sublist in params for value in sublist]
@@ -436,7 +439,7 @@ class PGraph(tk.Frame):
 
         self.draw()
 
-    def show_params(self, textbox, params):
+    def show_params(self, textbox: tk.Text, params: list[float]) -> None:
         text = ''
         for i in range(self.fitter.num_func):
             for j in range(self.fitter.num_params_per_func):
@@ -446,7 +449,7 @@ class PGraph(tk.Frame):
         textbox.delete(1.0, tk.END)
         textbox.insert(1.0, text)
 
-    def load_params(self):
+    def load_params(self) -> None:
         filename = self.listbox_file.get(0)
         params = self.dl.spec_dict[filename].fitting
         if len(params) == 0:
@@ -463,13 +466,13 @@ class PGraph(tk.Frame):
 
         self.show_params(self.text_params, self.fitter.params)
 
-    def save_params(self):
+    def save_params(self) -> None:
         for i in range(len(self.dl.spec_dict)):
             filename = self.listbox_file.get(i)
             self.dl.spec_dict[filename].fitting = [self.function_fitting.get()] + self.fitter.params_fit.tolist()
             self.dl.save(filename)
 
-    def delete(self):
+    def delete(self) -> None:
         selected_index = self.listbox_file.curselection()
         for index in selected_index:
             filename = self.listbox_file.get(index)
@@ -479,21 +482,23 @@ class PGraph(tk.Frame):
 
         self.draw()
 
-    def sort_file_ascending(self):
+    def sort_file_ascending(self) -> None:
         self.listbox_file.delete(0, tk.END)
         for filename in sorted(self.dl.spec_dict.keys()):
             self.listbox_file.insert(tk.END, filename)
 
-    def sort_file_descending(self):
+    def sort_file_descending(self) -> None:
         self.listbox_file.delete(0, tk.END)
         for filename in sorted(self.dl.spec_dict.keys(), reverse=True):
             self.listbox_file.insert(tk.END, filename)
 
-    def quit(self):
+    def quit(self) -> None:
         quit_me(self.master)
 
 
 def main():
+    set_rcParams()
+
     root = TkinterDnD.Tk()
     root.title('PGraph')
 
