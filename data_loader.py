@@ -66,7 +66,7 @@ def find_skip(lines: list[str]) -> int:
 
 
 def find_sep(filename: str, skip_rows: int) -> str:
-    sep_list = ['\t', ',']
+    sep_list = ['\t', ',', '   ']
     num_cols_list = []
     for sep in sep_list:
         df = pd.read_csv(filename, sep=sep, skiprows=skip_rows, header=None)

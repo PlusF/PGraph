@@ -467,7 +467,7 @@ class PGraph(tk.Frame):
         for i in range(len(self.dl.spec_dict)):
             filename = self.listbox_file.get(i)
             self.dl.spec_dict[filename].fitting = [self.function_fitting.get()] + self.fitter.params_fit.tolist()
-            self.dl.save(filename)
+            self.dl.save('.'.join(filename.split('.')[:-1]) + '_pgraph' + filename.split('.')[-1])
 
     def delete(self):
         selected_index = self.listbox_file.curselection()
