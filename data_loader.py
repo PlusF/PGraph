@@ -86,11 +86,18 @@ class DataLoader:
         with open(filename, 'r') as f:
             lines = f.readlines()
 
+        skip_rows = find_skip(lines)
+        if skip_rows == -1:
+            raise ValueError('No numeric data found. Check the input file again.')
+
         spectrum_dict = {}
         for keyword in ['abs_path_raw', 'abs_path_ref', 'calibration', 'description', 'fitting', 'device']:
             value = extract_keyword(lines, keyword)
 
-            if keyword == 'fitting':
+            if keyword == 'description':
+                if value is None:  # if it is the raw data
+                    value = lines[:skip_rows]
+            elif keyword == 'fitting':
                 if value is not None:
                     value = [value.split()[0]] + list(map(float, value.split()[1:]))
                 else:
@@ -98,9 +105,6 @@ class DataLoader:
 
             spectrum_dict[keyword] = value
 
-        skip_rows = find_skip(lines)
-        if skip_rows == -1:
-            raise ValueError('No numeric data found. Check the input file again.')
         sep = find_sep(filename, skip_rows)
         df = pd.read_csv(filename, sep=sep, skiprows=skip_rows, header=None)
         if df.shape[1] == 1:
