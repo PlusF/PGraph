@@ -146,7 +146,8 @@ class DataLoader:
     def save(self, filename):
         spec = self.spec_dict[filename]
         data = np.vstack((spec.xdata.T, spec.ydata.T)).T
-        with open(filename, 'w') as f:
+        filename_pgraph = '.'.join(filename.split('.')[:-1]) + '_pgraph.' + filename.split('.')[-1]
+        with open(filename_pgraph, 'w') as f:
             f.write(f'# abs_path_raw: {spec.abs_path_raw}\n')
             f.write(f'# abs_path_ref: {spec.abs_path_ref}\n')
             f.write(f'# calibration: {spec.calibration}\n')

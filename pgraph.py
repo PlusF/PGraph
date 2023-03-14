@@ -125,7 +125,7 @@ class PGraph(tk.Frame):
         self.label_description_1 = tk.Label(master=self.frame_fitting, textvariable=self.description_fitting)
         self.label_description_2 = tk.Label(master=self.frame_fitting, textvariable=self.description_fitting)
         self.text_params = tk.Text(master=self.frame_fitting, width=30, height=5)
-        self.text_params.insert(1.0, '1.7 20000 1\n1.8 3000 1\n0')
+        self.text_params.insert(1.0, '1.7 20000 1\n1.8 3000 1\n0 0')
         self.text_params_fit = tk.Text(master=self.frame_fitting, width=30, height=5)
         self.button_fit = tk.Button(master=self.frame_fitting, text='Fit', width=10, command=self.fit)
         self.if_show = tk.BooleanVar(value=False)
@@ -423,7 +423,7 @@ class PGraph(tk.Frame):
         self.fitter.load_data(x, y)
 
         params = self.get_params_from_text()
-        params = [float(value) for sublist in params for value in sublist]
+        params = [float(value.replace(r'\x7f308', '')) for sublist in params for value in sublist]
 
         self.fitter.set_params(params)
         if self.fitter.fit():
@@ -442,7 +442,7 @@ class PGraph(tk.Frame):
             for j in range(self.fitter.num_params_per_func):
                 text += str(round(params[i * self.fitter.num_params_per_func + j], 2)) + ' '
             text += '\n'
-        text += str(round(params[-1])) + '\n'
+        text += str(round(params[-2], 3)) + ' ' + str(round(params[-1], 3)) + '\n'
         textbox.delete(1.0, tk.END)
         textbox.insert(1.0, text)
 
@@ -467,7 +467,7 @@ class PGraph(tk.Frame):
         for i in range(len(self.dl.spec_dict)):
             filename = self.listbox_file.get(i)
             self.dl.spec_dict[filename].fitting = [self.function_fitting.get()] + self.fitter.params_fit.tolist()
-            self.dl.save('.'.join(filename.split('.')[:-1]) + '_pgraph' + filename.split('.')[-1])
+            self.dl.save(filename)
 
     def delete(self):
         selected_index = self.listbox_file.curselection()

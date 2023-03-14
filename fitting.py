@@ -14,16 +14,20 @@ def Gaussian(x, center, intensity, sigma):
     return intensity * y
 
 
-def Voigt(xval, center, intensity, lw, gw):
+def Voigt(x, center, intensity, lw, gw):
     # lw : HWFM of Lorentzian
     # gw : sigma of Gaussian
     if gw == 0:
         gw = 1e-10
-    z = (xval - center + 1j*lw) / (gw * np.sqrt(2.0))
+    z = (x - center + 1j*lw) / (gw * np.sqrt(2.0))
     w = wofz(z)
     model_y = w.real / (gw * np.sqrt(2.0*np.pi))
     intensity /= model_y.max()
     return intensity * model_y
+
+
+def linear(x, a, b):
+    return a * x + b
 
 
 class Fit:
@@ -68,7 +72,7 @@ class Fit:
             self.y_sum += self.func(x, *p)
 
         # バックグラウンドを追加
-        self.y_sum = self.y_sum + params[-1]
+        self.y_sum += linear(x, params[-2], params[-1])
 
         return self.y_sum
 
@@ -94,11 +98,9 @@ class Fit:
             self.y_list.append(y)
 
         # バックグラウンドを追加
-        self.y_list.append(np.ones_like(self.x) * self.params_fit[-1])
-        return True
+        self.y_list.append(linear(self.x, self.params_fit[-2], self.params_fit[-1]))
 
-    def get_y_list(self):
-        return self.y_list
+        return True
 
     def draw(self, ax):
         ok = self.make_y_list()
