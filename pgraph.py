@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from MyToolbar import MyToolbar
-from data_loader import DataLoader
+from dataloader import DataLoader
 from fitting import Fit
 
 
