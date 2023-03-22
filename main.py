@@ -38,11 +38,6 @@ def set_rcParams() -> None:
     plt.rcParams['figure.subplot.left'] = 0.2
 
 
-def quit_me(root_window):
-    root_window.quit()
-    root_window.destroy()
-
-
 class PGraph(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
@@ -493,7 +488,8 @@ class PGraph(tk.Frame):
             self.listbox_file.insert(tk.END, filename)
 
     def quit(self) -> None:
-        quit_me(self.master)
+        self.master.quit()
+        self.master.destroy()
 
 
 def main():
@@ -504,7 +500,7 @@ def main():
 
     app = PGraph(master=root)
     root.drop_target_register(DND_FILES)
-    root.protocol('WM_DELETE_WINDOW', lambda: quit_me(root))
+    root.protocol('WM_DELETE_WINDOW', app.quit)
     root.dnd_bind('<<Drop>>', app.load)
     app.mainloop()
 
