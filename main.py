@@ -325,7 +325,11 @@ class PGraph(tk.Frame):
         self.draw()
 
     def load(self, event: TkinterDnD.DnDEvent=None) -> None:
-        filenames = event.data.split()
+        if os.name == 'nt':
+            filenames = event.data.split('} {')
+            filenames = list(map(lambda x: x.strip('{').strip('}'), filenames))
+        else:
+            filenames = event.data.split()
         self.dl.load_files(filenames)
         self.check_device(filenames[0])
         self.update_listbox()
