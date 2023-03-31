@@ -90,7 +90,7 @@ class PGraph(tk.Frame):
         self.toolbar = MyToolbar(self.canvas, self.frame_graph, pack_toolbar=False)
         self.canvas.get_tk_widget().grid(row=0, column=0)
         self.toolbar.grid(row=1, column=0)
-        self.frame_graph_setting.grid(row=0, column=1)
+        self.frame_graph_setting.grid(row=0, column=1, rowspan=2)
 
         # config
         self.listbox_file = tk.Listbox(master=self.frame_config, width=70, height=8, selectmode='extended')
