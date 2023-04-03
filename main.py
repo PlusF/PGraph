@@ -325,9 +325,8 @@ class PGraph(tk.Frame):
         self.draw()
 
     def load(self, event: TkinterDnD.DnDEvent=None) -> None:
-        if os.name == 'nt':
-            filenames = event.data.split('} {')
-            filenames = list(map(lambda x: x.strip('{').strip('}'), filenames))
+        if event.data[0] == '{':
+            filenames = list(map(lambda x: x.strip('{').strip('}'), event.data.split('} {')))
         else:
             filenames = event.data.split()
         self.dl.load_files(filenames)
