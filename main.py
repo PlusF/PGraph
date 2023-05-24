@@ -441,7 +441,7 @@ class PGraph(tk.Frame):
         text = ''
         for i in range(self.fitter.num_func):
             for j in range(self.fitter.num_params_per_func):
-                text += str(round(params[i * self.fitter.num_params_per_func + j], 2)) + ' '
+                text += str(round(params[i * self.fitter.num_params_per_func + j], 3)) + ' '
             text += '\n'
         text += str(round(params[-2], 3)) + ' ' + str(round(params[-1], 3)) + '\n'
         textbox.delete(1.0, tk.END)
