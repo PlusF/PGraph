@@ -418,13 +418,14 @@ class PGraph(tk.Frame):
 
         # 表示範囲だけにトリミング
         xlim, _ = self.get_graph_range()
-        fit_range = (xlim[0] <= x) & (x <= xlim[1])
-        x = x[fit_range]
-        y = y[fit_range]
-        self.fitter.set_data(x, y)
+        self.fitter.set_data(x, y, xlim)
 
         params = self.get_params_from_text()
-        params = [float(value.replace(r'\x7f308', '')) for sublist in params for value in sublist]
+        try:
+            params = [float(value.replace(r'\x7f308', '')) for sublist in params for value in sublist]
+        except ValueError:
+            self.msg.set('パラメータが無効です．')
+            return
 
         self.fitter.set_params(params)
         if self.fitter.fit():
@@ -449,17 +450,21 @@ class PGraph(tk.Frame):
 
     def load_params(self) -> None:
         filename = self.listbox_file.get(0)
-        params = self.dl.spec_dict[filename].fitting
+        func = self.dl.spec_dict[filename].fitting_function
+        fitting_range = self.dl.spec_dict[filename].fitting_range
+        params = self.dl.spec_dict[filename].fitting_values
         if len(params) == 0:
             self.msg.set('No params to load.')
             return
-
+        # set range
+        self.entry_xmin.insert(0, fitting_range[0])
+        self.entry_xmax.insert(0, fitting_range[1])
+        self.check_and_fix_range()
+        self.canvas.draw()
         # set function
-        func = params[0]
         self.function_fitting.set(func)
         self.function_changed()
         # set parameters
-        params = params[1:]
         self.fitter.set_params(params)
 
         self.show_params(self.text_params, self.fitter.params)
@@ -467,7 +472,9 @@ class PGraph(tk.Frame):
     def save_params(self) -> None:
         for i in range(len(self.dl.spec_dict)):
             filename = self.listbox_file.get(i)
-            self.dl.spec_dict[filename].fitting = [self.function_fitting.get()] + self.fitter.params_fit.tolist()
+            self.dl.spec_dict[filename].fitting_function = self.function_fitting.get()
+            self.dl.spec_dict[filename].fitting_range = self.fitter.xlim
+            self.dl.spec_dict[filename].fitting_values = self.fitter.params_fit.tolist()
             self.dl.save(filename)
 
     def delete(self) -> None:

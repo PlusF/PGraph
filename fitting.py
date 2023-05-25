@@ -36,6 +36,7 @@ class Fit:
     def __init__(self):
         self.x = None
         self.y = None
+        self.xlim = None
         self.params = None
         self.num_func = 0
         self.func = Lorentzian
@@ -47,7 +48,12 @@ class Fit:
         self.params_fit = None
         self.pcov = None
 
-    def set_data(self, x: np.ndarray, y: np.ndarray) -> None:
+    def set_data(self, x: np.ndarray, y: np.ndarray, xlim: np.ndarray) -> None:
+        self.xlim = xlim
+        fit_range = (xlim[0] <= x) & (x <= xlim[1])
+        x = x[fit_range]
+        y = y[fit_range]
+
         self.x = x
         self.y = y
 
