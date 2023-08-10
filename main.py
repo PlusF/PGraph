@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
-from tkinter import ttk
-from tkinterdnd2 import *
+from tkinter import ttk, font
+from tkinterdnd2 import Tk, DND_FILES, TkinterDnD
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -12,17 +12,17 @@ from fitting import Fit
 
 def set_rcParams() -> None:
     plt.rcParams['font.family'] = 'Arial'
-    plt.rcParams['font.size'] = 15
+    plt.rcParams['font.size'] = 25
 
     plt.rcParams['xtick.direction'] = 'in'
     plt.rcParams['ytick.direction'] = 'in'
     plt.rcParams['xtick.major.width'] = 1.0
     plt.rcParams['ytick.major.width'] = 1.0
-    plt.rcParams['xtick.labelsize'] = 15
-    plt.rcParams['ytick.labelsize'] = 15
+    plt.rcParams['xtick.labelsize'] = 25
+    plt.rcParams['ytick.labelsize'] = 25
 
     plt.rcParams['axes.linewidth'] = 1.0
-    plt.rcParams['axes.labelsize'] = 18         # 軸ラベルのフォントサイズ
+    plt.rcParams['axes.labelsize'] = 35         # 軸ラベルのフォントサイズ
     plt.rcParams['axes.linewidth'] = 1.0        # グラフ囲う線の太さ
 
     plt.rcParams['legend.loc'] = 'best'        # 凡例の位置、"best"でいい感じのところ
@@ -34,8 +34,10 @@ def set_rcParams() -> None:
 
     plt.rcParams['lines.linewidth'] = 1.0
     plt.rcParams['image.cmap'] = 'jet'
-    plt.rcParams['figure.subplot.bottom'] = 0.2
-    plt.rcParams['figure.subplot.left'] = 0.2
+    plt.rcParams['figure.subplot.top'] = 0.95
+    plt.rcParams['figure.subplot.bottom'] = 0.15
+    plt.rcParams['figure.subplot.left'] = 0.1
+    plt.rcParams['figure.subplot.right'] = 0.95
 
 
 class PGraph(tk.Frame):
@@ -47,6 +49,10 @@ class PGraph(tk.Frame):
         self.fitter = Fit()
         self.msg = tk.StringVar(value='ファイルをドロップしてください')
 
+        self.spec_lines = {}
+        self.vlines = []
+        self.fitting_result = []
+
         self.create_graph()
         self.create_config()
 
@@ -56,8 +62,8 @@ class PGraph(tk.Frame):
         # TODO: legend機能つける？
 
     def create_graph(self) -> None:
-        width = 800
-        height = 500
+        width = 900
+        height = 600
         dpi = 100
         if os.name == 'posix':
             width /= 2
@@ -74,15 +80,29 @@ class PGraph(tk.Frame):
         self.ax.set_ylabel('Intensity [arb. units]')
 
     def create_config(self) -> None:
+        # スタイル設定
+        font_md = ('Arial', 16)
+        font_sm = ('Arial', 12)
+        style = ttk.Style()
+        style.theme_use('winnative')
+        style.configure('TButton', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='black')
+        style.configure('R.TButton', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='red')
+        style.configure('TLabel', font=font_sm, padding=[0, 4, 0, 4], foreground='black')
+        style.configure('TEntry', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='black')
+        style.configure('TCombobox', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='black')
+        style.configure('TCheckbutton', font=font_md, padding=[0, 4, 0, 4], foreground='black')
+        style.configure('TMenubutton', font=font_md, width=10, padding=[0, 4, 0, 4], foreground='black', justify='center')
+        # style.configure('TTreeview', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='black')
+
         # all parent frames
         self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Area')
-        self.frame_config = tk.LabelFrame(master=self.master, text='Loaded Data')
+        self.frame_data = tk.LabelFrame(master=self.master, text='Loaded Data')
         self.frame_fitting = tk.LabelFrame(master=self.master, text='Fitting')
-        self.label_msg = tk.Label(master=self.master, textvariable=self.msg)
-        self.frame_graph.grid(row=0, column=0, columnspan=3)
-        self.frame_config.grid(row=1, rowspan=2, column=0)
-        self.frame_fitting.grid(row=2, column=1)
-        self.label_msg.grid(row=1, column=1)
+        self.label_msg = ttk.Label(master=self.master, textvariable=self.msg, style='TLabel')
+        self.frame_graph.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky=tk.N)
+        self.frame_data.grid(row=1, rowspan=2, column=0, padx=10, sticky=tk.N)
+        self.frame_fitting.grid(row=2, column=1, padx=10, sticky=tk.N)
+        self.label_msg.grid(row=3, column=0, columnspan=2, padx=10, sticky=tk.N)
 
         # graph
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame_graph)
@@ -90,94 +110,107 @@ class PGraph(tk.Frame):
         self.toolbar = MyToolbar(self.canvas, self.frame_graph, pack_toolbar=False)
         self.canvas.get_tk_widget().grid(row=0, column=0)
         self.toolbar.grid(row=1, column=0)
-        self.frame_graph_setting.grid(row=0, column=1, rowspan=2)
+        self.frame_graph_setting.grid(row=0, column=1, rowspan=2, sticky=tk.N)
 
-        # config
-        self.listbox_file = tk.Listbox(master=self.frame_config, width=70, height=8, selectmode='extended')
+        # data
+        # TODO: Listbox => Treeview
+        self.listbox_file = tk.Listbox(master=self.frame_data, width=100, height=10, selectmode='extended', font=font_sm)
         self.listbox_file.bind('<Double-1>', self.select)
-        self.xbar = tk.Scrollbar(self.frame_config, orient=tk.HORIZONTAL)
-        self.ybar = tk.Scrollbar(self.frame_config, orient=tk.VERTICAL)
+        self.xbar = tk.Scrollbar(self.frame_data, orient=tk.HORIZONTAL)
+        self.ybar = tk.Scrollbar(self.frame_data, orient=tk.VERTICAL)
         self.xbar.config(command=self.listbox_file.xview)
         self.ybar.config(command=self.listbox_file.yview)
         self.listbox_file.config(xscrollcommand=self.xbar.set)
         self.listbox_file.config(yscrollcommand=self.ybar.set)
-        self.button_delete = tk.Button(master=self.frame_config, text='削除', width=12, height=1, command=self.delete)
-        self.button_sort_ascending = tk.Button(master=self.frame_config, text='ソート（昇順）', width=12, height=1, command=self.sort_file_ascending)
-        self.button_sort_descending = tk.Button(master=self.frame_config, text='ソート（降順）', width=12, height=1, command=self.sort_file_descending)
-        self.button_reset_selection = tk.Button(master=self.frame_config, text='ハイライト解除', width=12, height=1, command=self.reset_selection)
-        self.button_quit = tk.Button(master=self.frame_config, text='終了', fg='red',  width=12, height=1, command=self.quit)
+        self.button_delete = ttk.Button(master=self.frame_data, text='削除', command=self.delete)
+        self.button_sort_ascending = ttk.Button(master=self.frame_data, text='ソート（昇順）', command=self.sort_file_ascending)
+        self.button_sort_descending = ttk.Button(master=self.frame_data, text='ソート（降順）', command=self.sort_file_descending)
+        self.button_reset_selection = ttk.Button(master=self.frame_data, text='ハイライト解除', command=self.reset_selection)
+        self.button_quit = ttk.Button(master=self.frame_data, text='終了', style='R.TButton', command=self.quit)
         self.listbox_file.grid(row=0, column=0, columnspan=5)
         self.xbar.grid(row=1, column=0, columnspan=5, sticky=tk.W + tk.E)
         self.ybar.grid(row=0, column=5, sticky=tk.N + tk.S)
-        self.button_delete.grid(row=2, column=0)
-        self.button_sort_ascending.grid(row=2, column=1)
-        self.button_sort_descending.grid(row=2, column=2)
-        self.button_reset_selection.grid(row=2, column=3)
-        self.button_quit.grid(row=2, column=4)
+        self.button_delete.grid(row=2, column=0, padx=5, pady=5)
+        self.button_sort_ascending.grid(row=2, column=1, padx=5, pady=5)
+        self.button_sort_descending.grid(row=2, column=2, padx=5, pady=5)
+        self.button_reset_selection.grid(row=2, column=3, padx=5, pady=5)
+        self.button_quit.grid(row=2, column=4, padx=5, pady=5)
 
         # fitting
         self.functions = ('Lorentzian', 'Gaussian', "Voigt")
         self.function_fitting = tk.StringVar(value=self.functions[0])
-        self.optionmenu_fitting = tk.OptionMenu(self.frame_fitting, self.function_fitting, self.functions[0], *self.functions[1:], command=self.function_changed)
+        optionmenu_fitting = ttk.OptionMenu(self.frame_fitting, self.function_fitting, self.functions[0], *self.functions, style='TMenubutton', command=self.function_changed)
+        optionmenu_fitting['menu'].config(font=font_sm)
         self.description_fitting = tk.StringVar(value='位置 強度 幅 (BG)')
-        self.label_description_1 = tk.Label(master=self.frame_fitting, textvariable=self.description_fitting)
-        self.label_description_2 = tk.Label(master=self.frame_fitting, textvariable=self.description_fitting)
-        self.text_params = tk.Text(master=self.frame_fitting, width=30, height=5)
+        self.description_fitting_fitted = tk.StringVar(value='(fitted) 位置 強度 幅 (BG)')
+        self.label_description_1 = ttk.Label(master=self.frame_fitting,  textvariable=self.description_fitting)
+        self.label_description_2 = ttk.Label(master=self.frame_fitting, textvariable=self.description_fitting_fitted)
+        self.text_params = tk.Text(master=self.frame_fitting, width=30, height=5, font=font_md)
         self.text_params.insert(1.0, '1.7 20000 1\n1.8 3000 1\n0 0')
-        self.text_params_fit = tk.Text(master=self.frame_fitting, width=30, height=5)
-        self.button_fit = tk.Button(master=self.frame_fitting, text='Fit', width=10, command=self.fit)
+        self.text_params_fit = tk.Text(master=self.frame_fitting, width=30, height=5, font=font_md)
+        self.button_fit = ttk.Button(master=self.frame_fitting, text='Fit', command=self.fit)
         self.if_show = tk.BooleanVar(value=False)
-        self.check_fit = tk.Checkbutton(master=self.frame_fitting, variable=self.if_show, text='結果を描画', command=self.draw)
-        self.button_load = tk.Button(master=self.frame_fitting, text='LOAD', width=10, command=self.load_params)
-        self.button_save = tk.Button(master=self.frame_fitting, text='SAVE', width=10, command=self.save_params)
-        self.optionmenu_fitting.grid(row=0, column=0, columnspan=4)
+        self.check_fit = ttk.Checkbutton(master=self.frame_fitting, variable=self.if_show, text='結果を描画', style='TCheckbutton', command=self.refresh)
+        self.button_load = ttk.Button(master=self.frame_fitting, text='LOAD', command=self.load_params)
+        self.button_save = ttk.Button(master=self.frame_fitting, text='SAVE', command=self.save_params)
+        optionmenu_fitting.grid(row=0, column=0, columnspan=4, padx=5, pady=5)
         self.label_description_1.grid(row=1, column=0, columnspan=2)
         self.label_description_2.grid(row=1, column=2, columnspan=2)
         self.text_params.grid(row=2, column=0, columnspan=2)
         self.text_params_fit.grid(row=2, column=2, columnspan=2)
-        self.button_fit.grid(row=3, column=0)
-        self.check_fit.grid(row=3, column=1)
-        self.button_load.grid(row=3, column=2)
-        self.button_save.grid(row=3, column=3)
+        self.button_fit.grid(row=3, column=0, padx=5, pady=5)
+        self.check_fit.grid(row=3, column=1, padx=5, pady=5)
+        self.button_load.grid(row=3, column=2, padx=5, pady=5)
+        self.button_save.grid(row=3, column=3, padx=5, pady=5)
 
         # labelframes in graph_setting
-        self.labelframe_xaxis = tk.LabelFrame(master=self.frame_graph_setting, text='x軸ラベル')
-        self.labelframe_yaxis = tk.LabelFrame(master=self.frame_graph_setting, text='y軸ラベル')
-        self.labelframe_range = tk.LabelFrame(master=self.frame_graph_setting, text='グラフ範囲')
-        self.labelframe_individual = tk.LabelFrame(master=self.frame_graph_setting, text='個別設定')
-        self.labelframe_advanced = tk.LabelFrame(master=self.frame_graph_setting, text='一括設定')
-        self.labelframe_xaxis.grid(row=0, column=0, columnspan=2, sticky=tk.W)
-        self.labelframe_yaxis.grid(row=1, column=0, columnspan=2, sticky=tk.W)
-        self.labelframe_range.grid(row=2, column=0, columnspan=2, sticky=tk.W)
-        self.labelframe_individual.grid(row=3, column=0, columnspan=2, sticky=tk.W)
-        self.labelframe_advanced.grid(row=4, column=0, columnspan=2, sticky=tk.W)
+        self.frame_graph_setting_1 = ttk.Frame(master=self.frame_graph_setting)
+        self.frame_graph_setting_2 = ttk.Frame(master=self.frame_graph_setting)
+        self.frame_graph_setting_3 = ttk.Frame(master=self.frame_graph_setting)
+        self.frame_graph_setting_1.grid(row=0, column=0, padx=5, sticky=tk.N + tk.W)
+        self.frame_graph_setting_2.grid(row=0, column=1, padx=5, sticky=tk.N + tk.W)
+        self.frame_graph_setting_3.grid(row=0, column=2, padx=5, sticky=tk.N + tk.W)
+        self.labelframe_label = ttk.LabelFrame(master=self.frame_graph_setting_1, text='軸ラベル')
+        self.labelframe_range = ttk.LabelFrame(master=self.frame_graph_setting_1, text='グラフ範囲')
+        self.labelframe_label.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        self.labelframe_range.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        self.labelframe_individual = ttk.LabelFrame(master=self.frame_graph_setting_2, text='個別設定')
+        self.labelframe_advanced = ttk.LabelFrame(master=self.frame_graph_setting_2, text='一括設定')
+        self.button_reset = ttk.Button(master=self.frame_graph_setting_2, text='リセット', width=10, command=self.reset)
+        self.labelframe_individual.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        self.labelframe_advanced.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        self.button_reset.grid(row=3, column=0)
+        self.labelframe_vline = ttk.LabelFrame(master=self.frame_graph_setting_3, text='縦線追加')
+        self.labelframe_vline.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
 
         # xaxis, yaxis
         self.x_labels = ('Wavelength [nm]', 'Energy [eV]', 'Raman Shift [cm-1]')
-        self.y_labels = ('Intensity [arb. units]', 'Counts', 'Absorbance')
-        self.x_label = tk.IntVar(value=1)
-        for i, label in enumerate(self.x_labels):
-            radio_x = tk.Radiobutton(master=self.labelframe_xaxis, text=label, value=i+1, variable=self.x_label, command=self.update_option)
-            radio_x.grid(row=i, column=0, sticky=tk.W)
-        self.y_label = tk.IntVar(value=2)
-        for i, label in enumerate(self.y_labels):
-            radio_y = tk.Radiobutton(master=self.labelframe_yaxis, text=label, value=i+1, variable=self.y_label, command=self.update_option)
-            radio_y.grid(row=i, column=0, sticky=tk.W)
+        self.y_labels = ('Intensity [arb. units]', 'Counts', 'Absorbance', 'Transmittance')
+        self.x_label = tk.StringVar()
+        optionmenu_x_label = ttk.OptionMenu(self.labelframe_label, self.x_label, self.x_labels[0], *self.x_labels, command=self.update_option)
+        optionmenu_x_label.config(width=16)
+        optionmenu_x_label['menu'].config(font=font_sm)
+        self.y_label = tk.StringVar()
+        optionmenu_y_label = ttk.OptionMenu(self.labelframe_label, self.y_label, self.y_labels[0], *self.y_labels, command=self.update_option)
+        optionmenu_y_label.config(width=16)
+        optionmenu_y_label['menu'].config(font=font_sm)
+        optionmenu_x_label.grid(row=0, column=0, padx=5, pady=5)
+        optionmenu_y_label.grid(row=1, column=0, padx=5, pady=5)
 
         # range
-        self.label_min = tk.Label(master=self.labelframe_range, text='min')
-        self.label_max = tk.Label(master=self.labelframe_range, text='max')
-        self.label_ticks = tk.Label(master=self.labelframe_range, text='分割数')
-        self.label_xrange = tk.Label(master=self.labelframe_range, text='x')
-        self.label_yrange = tk.Label(master=self.labelframe_range, text='y')
-        self.entry_xmin = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
-        self.entry_xmax = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
-        self.entry_xticks = tk.Entry(master=self.labelframe_range, textvariable=tk.StringVar(value='auto'), width=5, justify=tk.CENTER)
-        self.entry_ymin = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
-        self.entry_ymax = tk.Entry(master=self.labelframe_range, width=5, justify=tk.CENTER)
-        self.entry_yticks = tk.Entry(master=self.labelframe_range, textvariable=tk.StringVar(value='auto'), width=5, justify=tk.CENTER)
-        # self.if_legend = tk.BooleanVar(value=False)
-        # self.check_legend = tk.Checkbutton(master=self.labelframe_range, variable=self.if_legend, text='Legend', command=self.draw)
+        self.label_min = ttk.Label(master=self.labelframe_range, text='min')
+        self.label_max = ttk.Label(master=self.labelframe_range, text='max')
+        self.label_ticks = ttk.Label(master=self.labelframe_range, text='分割数')
+        self.label_xrange = ttk.Label(master=self.labelframe_range, text='x')
+        self.label_yrange = ttk.Label(master=self.labelframe_range, text='y')
+        self.entry_xmin = ttk.Entry(master=self.labelframe_range, width=7, font=font_md, justify=tk.CENTER)
+        self.entry_xmax = ttk.Entry(master=self.labelframe_range, width=7, font=font_md, justify=tk.CENTER)
+        self.xticks = tk.StringVar(value='auto')
+        self.entry_xticks = ttk.Entry(master=self.labelframe_range, textvariable=self.xticks, width=5, font=font_md, justify=tk.CENTER)
+        self.entry_ymin = ttk.Entry(master=self.labelframe_range, width=7, font=font_md, justify=tk.CENTER)
+        self.entry_ymax = ttk.Entry(master=self.labelframe_range, width=7, font=font_md, justify=tk.CENTER)
+        self.yticks = tk.StringVar(value='auto')
+        self.entry_yticks = ttk.Entry(master=self.labelframe_range, textvariable=self.yticks, width=5, font=font_md, justify=tk.CENTER)
         self.label_min.grid(row=0, column=1)
         self.label_max.grid(row=0, column=2)
         self.label_ticks.grid(row=0, column=3)
@@ -189,61 +222,96 @@ class PGraph(tk.Frame):
         self.entry_ymin.grid(row=2, column=1)
         self.entry_ymax.grid(row=2, column=2)
         self.entry_yticks.grid(row=2, column=3)
-        # self.check_legend.grid(row=3, column=0, columnspan=4)
 
         # individual
-        self.label_color = tk.Label(master=self.labelframe_individual, text='色')
-        self.label_linestyle = tk.Label(master=self.labelframe_individual, text='線種')
-        self.label_y_shift = tk.Label(master=self.labelframe_individual, text='y方向シフト')
-        self.label_y_times = tk.Label(master=self.labelframe_individual, text='y方向倍率')
-        self.combobox_color = ttk.Combobox(master=self.labelframe_individual, values=('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold'), width=5)
-        self.combobox_color.insert(0, 'black')
-        self.combobox_linestyle = ttk.Combobox(master=self.labelframe_individual, values=('solid', 'dashed', 'dashdot', 'dotted'), width=5)
-        self.combobox_linestyle.insert(0, 'solid')
+        self.label_color = ttk.Label(master=self.labelframe_individual, text='色')
+        self.label_linestyle = ttk.Label(master=self.labelframe_individual, text='線種')
+        self.label_y_shift = ttk.Label(master=self.labelframe_individual, text='y方向シフト')
+        self.label_y_times = ttk.Label(master=self.labelframe_individual, text='y方向倍率')
+        linecolors = ('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold')
+        linestyles = ('solid', 'dashed', 'dashdot', 'dotted')
+        self.linecolor = tk.StringVar(value='black')
+        self.linestyle = tk.StringVar(value='solid')
+        optionmenu_linecolor = ttk.OptionMenu(self.labelframe_individual, self.linecolor, linecolors[0], *linecolors)
+        optionmenu_linestyle = ttk.OptionMenu(self.labelframe_individual, self.linestyle, linestyles[0], *linestyles)
+        optionmenu_linecolor.config(width=8)
+        optionmenu_linestyle.config(width=8)
         self.y_shift_value = tk.DoubleVar(value=0)
         self.y_times_value = tk.DoubleVar(value=1)
-        self.entry_y_shift = tk.Entry(master=self.labelframe_individual, textvariable=self.y_shift_value, width=5, justify=tk.CENTER)
-        self.entry_y_times = tk.Entry(master=self.labelframe_individual, textvariable=self.y_times_value, width=5, justify=tk.CENTER)
-        self.button_apply = tk.Button(master=self.labelframe_individual, text='適用', width=10, command=self.update_option)
-        self.button_reset = tk.Button(master=self.labelframe_individual, text='リセット', width=10, command=self.reset)
-        self.label_color.grid(row=0, column=0)
-        self.label_linestyle.grid(row=1, column=0)
-        self.label_y_shift.grid(row=2, column=0)
-        self.label_y_times.grid(row=3, column=0)
-        self.combobox_color.grid(row=0, column=1)
-        self.combobox_linestyle.grid(row=1, column=1)
-        self.entry_y_shift.grid(row=2, column=1)
-        self.entry_y_times.grid(row=3, column=1)
-        self.button_apply.grid(row=4, column=0)
-        self.button_reset.grid(row=4, column=1)
+        self.entry_y_shift = ttk.Entry(master=self.labelframe_individual, textvariable=self.y_shift_value, width=7, font=font_md, justify=tk.CENTER)
+        self.entry_y_times = ttk.Entry(master=self.labelframe_individual, textvariable=self.y_times_value, width=7, font=font_md, justify=tk.CENTER)
+        self.button_apply = ttk.Button(master=self.labelframe_individual, text='適用', width=10, command=self.update_option)
+        self.label_color.grid(row=0, column=0, padx=5, pady=5)
+        self.label_linestyle.grid(row=1, column=0, padx=5, pady=5)
+        self.label_y_shift.grid(row=2, column=0, padx=5, pady=5)
+        self.label_y_times.grid(row=3, column=0, padx=5, pady=5)
+        optionmenu_linecolor.grid(row=0, column=1, padx=5, pady=5)
+        optionmenu_linestyle.grid(row=1, column=1, padx=5, pady=5)
+        self.entry_y_shift.grid(row=2, column=1, padx=5, pady=5)
+        self.entry_y_times.grid(row=3, column=1, padx=5, pady=5)
+        self.button_apply.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
 
         # advanced
         self.y_shift_each_value = tk.DoubleVar(value=0)
-        self.entry_y_shift_each = tk.Entry(master=self.labelframe_advanced, textvariable=self.y_shift_each_value, width=5, justify=tk.CENTER)
-        self.label_y_shift_each = tk.Label(master=self.labelframe_advanced, text='ずつy方向にずらす')
-        self.button_apply_advanced = tk.Button(master=self.labelframe_advanced, text='適用', width=10, command=self.apply_advanced)
-        self.entry_y_shift_each.grid(row=0, column=0)
-        self.label_y_shift_each.grid(row=0, column=1)
-        self.button_apply_advanced.grid(row=1, column=0, columnspan=2)
+        self.entry_y_shift_each = ttk.Entry(master=self.labelframe_advanced, textvariable=self.y_shift_each_value, width=7, font=font_md, justify=tk.CENTER)
+        self.label_y_shift_each = ttk.Label(master=self.labelframe_advanced, text='ずつy方向にずらす')
+        self.button_apply_advanced = ttk.Button(master=self.labelframe_advanced, text='適用', width=10, command=self.apply_advanced)
+        self.entry_y_shift_each.grid(row=0, column=0, padx=5, pady=5)
+        self.label_y_shift_each.grid(row=0, column=1, padx=5, pady=5)
+        self.button_apply_advanced.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
 
-    def clear(self) -> None:
-        for obj in self.ax.lines + self.ax.collections:
+        # vertical line
+        self.label_vline_x = ttk.Label(master=self.labelframe_vline, text='x座標')
+        self.label_vline_color = ttk.Label(master=self.labelframe_vline, text='色')
+        self.label_vline_linestyle = ttk.Label(master=self.labelframe_vline, text='線種')
+        self.vline_x_value = tk.DoubleVar(value=0)
+        self.vlinecolor = tk.StringVar(value='black')
+        self.vlinestyle = tk.StringVar(value='solid')
+        optionmenu_vlinecolor = ttk.OptionMenu(self.labelframe_vline, self.vlinecolor, linecolors[0], *linecolors)
+        optionmenu_vlinestyle = ttk.OptionMenu(self.labelframe_vline, self.vlinestyle, linestyles[0], *linestyles)
+        optionmenu_linecolor.config(width=8)
+        optionmenu_linestyle.config(width=8)
+        self.entry_vline_x = ttk.Entry(master=self.labelframe_vline, textvariable=self.vline_x_value, width=7, font=font_md, justify=tk.CENTER)
+        self.button_vline_apply = ttk.Button(master=self.labelframe_vline, text='適用', width=10, command=self.apply_vline)
+        self.label_vline_x.grid(row=0, column=0, padx=5, pady=5)
+        self.label_vline_color.grid(row=1, column=0, padx=5, pady=5)
+        self.label_vline_linestyle.grid(row=2, column=0, padx=5, pady=5)
+        self.entry_vline_x.grid(row=0, column=1, padx=5, pady=5)
+        optionmenu_vlinecolor.grid(row=1, column=1, padx=5, pady=5)
+        optionmenu_vlinestyle.grid(row=2, column=1, padx=5, pady=5)
+        self.button_vline_apply.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
+
+    def remove_spec_lines(self) -> None:
+        for line in self.spec_lines.values():
+            line.remove()
+        self.spec_lines = {}
+
+    def remove_vlines(self) -> None:
+        for line in self.vlines:
+            line.remove()
+        self.vlines = []
+
+    def remove_fitting_result(self) -> None:
+        for obj in self.fitting_result:
             obj.remove()
 
-    def draw(self) -> None:
-        self.clear()
+    def refresh(self) -> None:
+        self.remove_spec_lines()
+        self.remove_vlines()
+        self.remove_fitting_result()
 
         xlims = {'min': [1e10], 'max': [0]}
         ylims = {'min': [1e10], 'max': [0]}
-        for spec in self.dl.spec_dict.values():
+        for filename, spec in self.dl.spec_dict.items():
             linewidth = 2 if spec.highlight else 1
 
             x = spec.xdata
-            if self.x_label.get() == 2:  # エネルギー
+            if self.x_label.get() == self.x_labels[1]:  # エネルギー
                 x = 1240 / x
             y = spec.ydata * spec.y_times
 
-            self.ax.plot(x, y + spec.y_shift, color=spec.color, linestyle=spec.linestyle, linewidth=linewidth)
+            line = self.ax.plot(x, y + spec.y_shift, color=spec.color, linestyle=spec.linestyle, linewidth=linewidth)
+            self.spec_lines[filename] = line[0]
 
             xlims['min'].append(min(x))
             xlims['max'].append(max(x))
@@ -255,14 +323,11 @@ class PGraph(tk.Frame):
 
         self.ax.set(xlim=xlim, ylim=ylim)
 
-        self.ax.set_xlabel(self.x_labels[self.x_label.get() - 1])
-        self.ax.set_ylabel(self.y_labels[self.y_label.get() - 1])
+        self.ax.set_xlabel(self.x_label.get())
+        self.ax.set_ylabel(self.y_label.get())
 
         if self.if_show.get():
-            self.fitter.draw(self.ax)
-
-        # if self.if_legend.get():
-        #     self.ax.legend()
+            self.fitting_result = self.fitter.draw(self.ax)
 
         self.check_and_fix_range()
 
@@ -298,17 +363,17 @@ class PGraph(tk.Frame):
 
         self.ax_x.reset_ticks()
         self.ax_y.reset_ticks()
-        if self.entry_xticks.get() != 'auto':
+        if self.xticks.get() != 'auto':
             self.ax_x.set_ticks(np.linspace(*xlim, int(self.entry_xticks.get()) + 1))
-        if self.entry_yticks.get() != 'auto':
+        if self.yticks.get() != 'auto':
             self.ax_y.set_ticks(np.linspace(*ylim, int(self.entry_yticks.get()) + 1))
 
     def update_option(self, event=None) -> None:
         selected_index = self.listbox_file.curselection()
         for index in selected_index:
             filename = self.listbox_file.get(index)
-            color = self.combobox_color.get()
-            linestyle = self.combobox_linestyle.get()
+            color = self.linecolor.get()
+            linestyle = self.linestyle.get()
             y_shift = self.y_shift_value.get()
             y_times = self.y_times_value.get()
             self.dl.spec_dict[filename].color = color
@@ -316,13 +381,21 @@ class PGraph(tk.Frame):
             self.dl.spec_dict[filename].y_shift = y_shift
             self.dl.spec_dict[filename].y_times = y_times
 
-        self.draw()
+        self.refresh()  # TODO: 既存のグラフを消さないようにする
 
     def apply_advanced(self, event=None) -> None:
         for i in range(len(self.dl.spec_dict)):
             filename = self.listbox_file.get(i)
             self.dl.spec_dict[filename].y_shift = i * self.y_shift_each_value.get()
-        self.draw()
+        self.refresh()
+
+    def apply_vline(self, event=None) -> None:
+        x = float(self.entry_vline_x.get())
+        color = self.vlinecolor.get()
+        linestyle = self.vlinestyle.get()
+        line = self.ax.axvline(x=x, color=color, linestyle=linestyle)
+        self.vlines.append(line)
+        self.canvas.draw()
 
     def load(self, event: TkinterDnD.DnDEvent=None) -> None:
         if event.data[0] == '{':
@@ -332,7 +405,7 @@ class PGraph(tk.Frame):
         self.dl.load_files(filenames)
         self.check_device(filenames[0])
         self.update_listbox()
-        self.draw()
+        self.refresh()  # TODO: 既存のグラフを消さないようにする
 
     def select(self, event=None) -> None:
         self.dl.reset_highlight()
@@ -340,15 +413,15 @@ class PGraph(tk.Frame):
         for index in selected_index:
             filename = self.listbox_file.get(index)
             self.dl.spec_dict[filename].highlight = True
-            self.combobox_color.set(self.dl.spec_dict[filename].color)
+            self.linecolor.set(self.dl.spec_dict[filename].color)
             self.y_shift_value.set(self.dl.spec_dict[filename].y_shift)
             self.y_times_value.set(self.dl.spec_dict[filename].y_times)
-        self.draw()
+        self.refresh()  # TODO: 既存のグラフを消さないようにする
 
     def reset_selection(self) -> None:
         self.listbox_file.select_clear(0, tk.END)
         self.dl.reset_highlight()
-        self.draw()
+        self.refresh()
 
     def update_listbox(self) -> None:
         self.listbox_file.delete(0, tk.END)
@@ -359,15 +432,18 @@ class PGraph(tk.Frame):
     def check_device(self, filename: str) -> None:
         device = self.dl.spec_dict[filename].device
         if device == 'Renishaw':
-            self.x_label.set(3)
+            self.x_label.set(self.x_labels[2])
+            self.y_label.set(self.y_labels[0])
         elif device == 'Andor':
-            self.x_label.set(2)
+            self.x_label.set(self.x_labels[0])
+            self.y_label.set(self.y_labels[0])
         elif device == 'CCS':
-            self.x_label.set(2)
+            self.x_label.set(self.x_labels[0])
+            self.y_label.set(self.y_labels[0])
 
     def reset(self) -> None:
         self.dl.reset_option()
-        self.draw()
+        self.refresh()
 
     def get_params_from_text(self) -> list[list[str]]:
         params = self.text_params.get(1.0, tk.END)
@@ -404,6 +480,7 @@ class PGraph(tk.Frame):
             return
 
         self.description_fitting.set(description)
+        self.description_fitting_fitted.set('(fitted) ' + description)
         self.text_params.delete(1.0, tk.END)
         self.text_params.insert(1.0, params_default)
 
@@ -436,7 +513,7 @@ class PGraph(tk.Frame):
 
         self.show_params(self.text_params_fit, self.fitter.params_fit)
 
-        self.draw()
+        self.refresh()
 
     def show_params(self, textbox: tk.Text, params: list[float]) -> None:
         text = ''
@@ -482,10 +559,12 @@ class PGraph(tk.Frame):
         for index in selected_index:
             filename = self.listbox_file.get(index)
             self.dl.delete_file(filename)
+            self.spec_lines[filename].remove()
+            del self.spec_lines[filename]
         for index in reversed(selected_index):
             self.listbox_file.delete(index)
 
-        self.draw()
+        self.canvas.draw()
 
     def sort_file_ascending(self) -> None:
         self.listbox_file.delete(0, tk.END)
@@ -505,13 +584,14 @@ class PGraph(tk.Frame):
 def main():
     set_rcParams()
 
-    root = TkinterDnD.Tk()
+    root = Tk()
     root.title('PGraph')
 
     app = PGraph(master=root)
     root.drop_target_register(DND_FILES)
     root.protocol('WM_DELETE_WINDOW', app.quit)
     root.dnd_bind('<<Drop>>', app.load)
+
     app.mainloop()
 
 

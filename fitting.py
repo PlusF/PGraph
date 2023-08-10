@@ -110,14 +110,19 @@ class Fit:
 
         return True
 
-    def draw(self, ax: plt.axes) -> None:
+    def draw(self, ax: plt.axes) -> list:
         ok = self.make_y_list()
         if not ok:
-            return
+            return []
 
+        fitting_result = []
         for i, y in enumerate(self.y_list):
             if i == 0 or i == len(self.y_list) - 1:
-                ax.plot(self.x, y, color='r')
+                line = ax.plot(self.x, y, color='r')
+                fitting_result.append(line[0])
             else:
-                ax.fill_between(self.x, y, self.y_list[-1], facecolor=cm.rainbow(i / len(self.y_list)), alpha=0.6)
+                fill = ax.fill_between(self.x, y, self.y_list[-1], facecolor=cm.rainbow(i / len(self.y_list)), alpha=0.6)
+                fitting_result.append(fill)
+
+        return fitting_result
 
