@@ -12,34 +12,69 @@ from MyScrolledTreeview import MyTreeview
 from dataloader import DataLoader
 from fitting import Fit
 
+font_lg = ('Arial', 24)
+font_md = ('Arial', 16)
+font_sm = ('Arial', 12)
 
-def set_rcParams() -> None:
-    plt.rcParams['font.family'] = 'Arial'
+linestyles = ('solid', 'dashed', 'dashdot', 'dotted')
 
-    plt.rcParams['xtick.direction'] = 'in'
-    plt.rcParams['ytick.direction'] = 'in'
-    plt.rcParams['xtick.major.width'] = 1.0
-    plt.rcParams['ytick.major.width'] = 1.0
-    plt.rcParams['xtick.labelsize'] = 25
-    plt.rcParams['ytick.labelsize'] = 25
+functions = ('Lorentzian', 'Gaussian', "Voigt")
 
-    plt.rcParams['axes.linewidth'] = 1.0
-    plt.rcParams['axes.labelsize'] = 35         # 軸ラベルのフォントサイズ
-    plt.rcParams['axes.linewidth'] = 1.0        # グラフ囲う線の太さ
+plt.rcParams['font.family'] = 'Arial'
 
-    plt.rcParams['legend.loc'] = 'best'        # 凡例の位置、"best"でいい感じのところ
-    plt.rcParams['legend.frameon'] = True       # 凡例を囲うかどうか、Trueで囲う、Falseで囲わない
-    plt.rcParams['legend.framealpha'] = 1.0     # 透過度、0.0から1.0の値を入れる
-    plt.rcParams['legend.facecolor'] = 'white'  # 背景色
-    plt.rcParams['legend.edgecolor'] = 'black'  # 囲いの色
-    plt.rcParams['legend.fancybox'] = False     # Trueにすると囲いの四隅が丸くなる
+plt.rcParams['xtick.direction'] = 'in'
+plt.rcParams['ytick.direction'] = 'in'
+plt.rcParams['xtick.major.width'] = 1.0
+plt.rcParams['ytick.major.width'] = 1.0
+plt.rcParams['xtick.labelsize'] = 25
+plt.rcParams['ytick.labelsize'] = 25
 
-    plt.rcParams['lines.linewidth'] = 1.0
-    plt.rcParams['image.cmap'] = 'jet'
-    plt.rcParams['figure.subplot.top'] = 0.95
-    plt.rcParams['figure.subplot.bottom'] = 0.15
-    plt.rcParams['figure.subplot.left'] = 0.1
-    plt.rcParams['figure.subplot.right'] = 0.95
+plt.rcParams['axes.linewidth'] = 1.0
+plt.rcParams['axes.labelsize'] = 35         # 軸ラベルのフォントサイズ
+plt.rcParams['axes.linewidth'] = 1.0        # グラフ囲う線の太さ
+
+plt.rcParams['legend.loc'] = 'best'        # 凡例の位置、"best"でいい感じのところ
+plt.rcParams['legend.frameon'] = True       # 凡例を囲うかどうか、Trueで囲う、Falseで囲わない
+plt.rcParams['legend.framealpha'] = 1.0     # 透過度、0.0から1.0の値を入れる
+plt.rcParams['legend.facecolor'] = 'white'  # 背景色
+plt.rcParams['legend.edgecolor'] = 'black'  # 囲いの色
+plt.rcParams['legend.fancybox'] = False     # Trueにすると囲いの四隅が丸くなる
+
+plt.rcParams['lines.linewidth'] = 1.0
+plt.rcParams['image.cmap'] = 'jet'
+plt.rcParams['figure.subplot.top'] = 0.95
+plt.rcParams['figure.subplot.bottom'] = 0.15
+plt.rcParams['figure.subplot.left'] = 0.1
+plt.rcParams['figure.subplot.right'] = 0.95
+
+
+def create_line_config_widget(parent):
+    # 線の設定ウィジェットと更新用の関数を生成する
+
+    linecolor = ['black']  # mutableなオブジェクトを渡す
+
+    def change_linecolor(event) -> None:
+        rgb, code = colorchooser.askcolor(title='色を選択')
+        set_linecolor(code)
+
+    def set_linecolor(code) -> None:
+        label_show_linecolor.config(background=code)
+        linecolor[0] = code
+
+    label_color = ttk.Label(master=parent, text='色')
+    label_linestyle = ttk.Label(master=parent, text='線種')
+    label_show_linecolor = ttk.Label(master=parent, style='Color.TLabel')
+    label_show_linecolor.bind('<Button-1>', change_linecolor)
+    linestyle = tk.StringVar(value='solid')
+    optionmenu_linestyle = ttk.OptionMenu(parent, linestyle, linestyles[0], *linestyles)
+    optionmenu_linestyle.config(width=5)
+    optionmenu_linestyle['menu'].config(font=font_sm)
+    label_color.grid(row=0, column=0, padx=5, pady=5)
+    label_show_linecolor.grid(row=0, column=1, padx=5, pady=5)
+    label_linestyle.grid(row=1, column=0, padx=5, pady=5)
+    optionmenu_linestyle.grid(row=1, column=1, padx=5, pady=5)
+
+    return label_show_linecolor, linecolor, change_linecolor, set_linecolor, linestyle
 
 
 class PGraph(tk.Frame):
@@ -52,6 +87,7 @@ class PGraph(tk.Frame):
 
         self.spec_lines = {}
         self.vlines = []
+        self.hlines = []
         self.fitting_result = []
 
         self.create_graph()
@@ -59,7 +95,6 @@ class PGraph(tk.Frame):
 
         self.master.bind("<Return>", self.apply_option)
 
-        # TODO: 縦ライン・横ラインを入れられるように
         # TODO: legend機能つける？
 
     def create_graph(self) -> None:
@@ -82,49 +117,46 @@ class PGraph(tk.Frame):
 
     def create_config(self) -> None:
         # スタイル設定
-        font_lg = ('Arial', 30)
-        font_md = ('Arial', 16)
-        font_sm = ('Arial', 12)
         style = ttk.Style()
         style.theme_use('winnative')
         style.configure('TButton', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='black')
         style.configure('R.TButton', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='red')
         style.configure('TLabel', font=font_sm, padding=[0, 4, 0, 4], foreground='black')
-        style.configure('L.TLabel', font=font_lg, foreground='black')
+        style.configure('Color.TLabel', font=font_lg, padding=[0, 0, 0, 0], width=4, background='black')
         style.configure('TEntry', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='black')
         style.configure('TCheckbutton', font=font_md, padding=[0, 4, 0, 4], foreground='black')
         style.configure('TMenubutton', font=font_md, padding=[20, 4, 0, 4], foreground='black')
         style.configure('TTreeview', font=font_md, foreground='black')
 
         # all parent frames
-        self.frame_graph = tk.LabelFrame(master=self.master, text='Graph Area')
-        self.frame_data = tk.LabelFrame(master=self.master, text='Loaded Data')
-        self.frame_fitting = tk.LabelFrame(master=self.master, text='Fitting')
-        self.frame_graph.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky=tk.N)
-        self.frame_data.grid(row=1, rowspan=2, column=0, padx=10, sticky=tk.N)
-        self.frame_fitting.grid(row=2, column=1, padx=10, sticky=tk.N)
+        frame_graph = tk.LabelFrame(master=self.master, text='Graph Area')
+        frame_data = tk.LabelFrame(master=self.master, text='Loaded Data')
+        frame_fitting = tk.LabelFrame(master=self.master, text='Fitting')
+        frame_graph.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky=tk.N)
+        frame_data.grid(row=1, rowspan=2, column=0, padx=10, sticky=tk.N)
+        frame_fitting.grid(row=2, column=1, padx=10, sticky=tk.N)
 
         # graph
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame_graph)
-        self.frame_graph_setting = tk.LabelFrame(master=self.frame_graph, text='Graph Setting')
-        self.toolbar = MyToolbar(self.canvas, self.frame_graph, pack_toolbar=False)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=frame_graph)
+        frame_graph_setting = tk.LabelFrame(master=frame_graph, text='Graph Setting')
+        toolbar = MyToolbar(self.canvas, frame_graph, pack_toolbar=False)
         self.canvas.get_tk_widget().grid(row=0, column=0)
-        self.toolbar.grid(row=1, column=0)
-        self.frame_graph_setting.grid(row=0, column=1, rowspan=2, sticky=tk.N)
+        toolbar.grid(row=1, column=0)
+        frame_graph_setting.grid(row=0, column=1, rowspan=2, sticky=tk.N)
 
         # data
-        self.treeview_file = MyTreeview(master=self.frame_data)
+        self.treeview_file = MyTreeview(master=frame_data)
         self.treeview_file.bind('<Button-1>', self.select)
         self.treeview_file.bind('<Delete>', self.delete)
         self.treeview_file.bind('<BackSpace>', self.delete)
         self.treeview_file.bind('<Control-a>', lambda _: self.treeview_file.selection_add(self.treeview_file.get_children()))
         self.treeview_file.bind('Enter', self.apply_option)
         self.treeview_file.grid(row=0, column=0, columnspan=5)
-        button_delete = ttk.Button(master=self.frame_data, text='削除', command=self.delete)
-        button_sort_ascending = ttk.Button(master=self.frame_data, text='ソート（昇順）', command=self.sort_file_ascending)
-        button_sort_descending = ttk.Button(master=self.frame_data, text='ソート（降順）', command=self.sort_file_descending)
-        button_reset_selection = ttk.Button(master=self.frame_data, text='ハイライト解除', command=self.reset_selection)
-        button_quit = ttk.Button(master=self.frame_data, text='終了', style='R.TButton', command=self.quit)
+        button_delete = ttk.Button(master=frame_data, text='削除', command=self.delete)
+        button_sort_ascending = ttk.Button(master=frame_data, text='ソート（昇順）', command=self.sort_file_ascending)
+        button_sort_descending = ttk.Button(master=frame_data, text='ソート（降順）', command=self.sort_file_descending)
+        button_reset_selection = ttk.Button(master=frame_data, text='ハイライト解除', command=self.reset_selection)
+        button_quit = ttk.Button(master=frame_data, text='終了', style='R.TButton', command=self.quit)
         button_delete.grid(row=2, column=0, padx=5, pady=5)
         button_sort_ascending.grid(row=2, column=1, padx=5, pady=5)
         button_sort_descending.grid(row=2, column=2, padx=5, pady=5)
@@ -132,54 +164,55 @@ class PGraph(tk.Frame):
         button_quit.grid(row=2, column=4, padx=5, pady=5)
 
         # fitting
-        self.functions = ('Lorentzian', 'Gaussian', "Voigt")
-        self.function_fitting = tk.StringVar(value=self.functions[0])
-        optionmenu_fitting = ttk.OptionMenu(self.frame_fitting, self.function_fitting, self.functions[0], *self.functions, style='TMenubutton', command=self.function_changed)
+        self.function_fitting = tk.StringVar(value=functions[0])
+        optionmenu_fitting = ttk.OptionMenu(frame_fitting, self.function_fitting, functions[0], *functions, command=self.function_changed)
         optionmenu_fitting.config(width=10)
         optionmenu_fitting['menu'].config(font=font_sm)
         self.description_fitting = tk.StringVar(value='位置 強度 幅 (BG)')
         self.description_fitting_fitted = tk.StringVar(value='(fitted) 位置 強度 幅 (BG)')
-        self.label_description_1 = ttk.Label(master=self.frame_fitting,  textvariable=self.description_fitting)
-        self.label_description_2 = ttk.Label(master=self.frame_fitting, textvariable=self.description_fitting_fitted)
-        self.text_params = tk.Text(master=self.frame_fitting, width=30, height=5, font=font_md)
+        label_description_1 = ttk.Label(master=frame_fitting,  textvariable=self.description_fitting)
+        label_description_2 = ttk.Label(master=frame_fitting, textvariable=self.description_fitting_fitted)
+        self.text_params = tk.Text(master=frame_fitting, width=30, height=5, font=font_md)
         self.text_params.insert(1.0, '1.7 20000 1\n1.8 3000 1\n0 0')
-        self.text_params_fit = tk.Text(master=self.frame_fitting, width=30, height=5, font=font_md)
-        self.button_fit = ttk.Button(master=self.frame_fitting, text='Fit', command=self.fit)
+        self.text_params_fit = tk.Text(master=frame_fitting, width=30, height=5, font=font_md)
+        self.button_fit = ttk.Button(master=frame_fitting, text='Fit', command=self.fit)
         self.if_show = tk.BooleanVar(value=False)
-        self.check_fit = ttk.Checkbutton(master=self.frame_fitting, variable=self.if_show, text='結果を描画', style='TCheckbutton', command=self.refresh)
-        self.button_load = ttk.Button(master=self.frame_fitting, text='LOAD', command=self.load_params)
-        self.button_save = ttk.Button(master=self.frame_fitting, text='SAVE', command=self.save_params)
+        self.check_fit = ttk.Checkbutton(master=frame_fitting, variable=self.if_show, text='結果を描画', command=self.refresh)
+        button_load = ttk.Button(master=frame_fitting, text='LOAD', command=self.load_params)
+        button_save = ttk.Button(master=frame_fitting, text='SAVE', command=self.save_params)
         optionmenu_fitting.grid(row=0, column=0, columnspan=4, padx=5, pady=5)
-        self.label_description_1.grid(row=1, column=0, columnspan=2)
-        self.label_description_2.grid(row=1, column=2, columnspan=2)
+        label_description_1.grid(row=1, column=0, columnspan=2)
+        label_description_2.grid(row=1, column=2, columnspan=2)
         self.text_params.grid(row=2, column=0, columnspan=2)
         self.text_params_fit.grid(row=2, column=2, columnspan=2)
         self.button_fit.grid(row=3, column=0, padx=5, pady=5)
         self.check_fit.grid(row=3, column=1, padx=5, pady=5)
-        self.button_load.grid(row=3, column=2, padx=5, pady=5)
-        self.button_save.grid(row=3, column=3, padx=5, pady=5)
+        button_load.grid(row=3, column=2, padx=5, pady=5)
+        button_save.grid(row=3, column=3, padx=5, pady=5)
 
         # labelframes in graph_setting
-        self.frame_graph_setting_1 = ttk.Frame(master=self.frame_graph_setting)
-        self.frame_graph_setting_2 = ttk.Frame(master=self.frame_graph_setting)
-        self.frame_graph_setting_3 = ttk.Frame(master=self.frame_graph_setting)
-        self.frame_graph_setting_1.grid(row=0, column=0, padx=5, sticky=tk.N + tk.W)
-        self.frame_graph_setting_2.grid(row=0, column=1, padx=5, sticky=tk.N + tk.W)
-        self.frame_graph_setting_3.grid(row=0, column=2, padx=5, sticky=tk.N + tk.W)
-        self.labelframe_label = ttk.LabelFrame(master=self.frame_graph_setting_1, text='軸ラベル')
-        self.labelframe_range = ttk.LabelFrame(master=self.frame_graph_setting_1, text='グラフ範囲')
+        frame_graph_setting_1 = ttk.Frame(master=frame_graph_setting)
+        frame_graph_setting_2 = ttk.Frame(master=frame_graph_setting)
+        frame_graph_setting_3 = ttk.Frame(master=frame_graph_setting)
+        frame_graph_setting_1.grid(row=0, column=0, padx=5, sticky=tk.N + tk.W)
+        frame_graph_setting_2.grid(row=0, column=1, padx=5, sticky=tk.N + tk.W)
+        frame_graph_setting_3.grid(row=0, column=2, padx=5, sticky=tk.N + tk.W)
+        self.labelframe_label = ttk.LabelFrame(master=frame_graph_setting_1, text='軸ラベル')
+        self.labelframe_range = ttk.LabelFrame(master=frame_graph_setting_1, text='グラフ範囲')
         self.labelframe_label.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.labelframe_range.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
-        self.labelframe_individual = ttk.LabelFrame(master=self.frame_graph_setting_2, text='個別設定')
-        self.labelframe_advanced = ttk.LabelFrame(master=self.frame_graph_setting_2, text='一括設定')
-        self.button_reset_option = ttk.Button(master=self.frame_graph_setting_2, text='リセット', width=10, command=self.reset_option)
+        self.labelframe_individual = ttk.LabelFrame(master=frame_graph_setting_2, text='個別設定')
+        self.labelframe_advanced = ttk.LabelFrame(master=frame_graph_setting_2, text='一括設定')
+        self.button_reset_option = ttk.Button(master=frame_graph_setting_2, text='リセット', width=10, command=self.reset_option)
         self.labelframe_individual.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.labelframe_advanced.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
         self.button_reset_option.grid(row=3, column=0)
-        self.labelframe_vline = ttk.LabelFrame(master=self.frame_graph_setting_3, text='縦線追加')
-        self.button_reset_vline = ttk.Button(master=self.frame_graph_setting_3, text='リセット', width=10, command=self.reset_vline)
+        self.labelframe_vline = ttk.LabelFrame(master=frame_graph_setting_3, text='縦線追加')
+        self.labelframe_hline = ttk.LabelFrame(master=frame_graph_setting_3, text='横線追加')
+        self.button_reset_lines = ttk.Button(master=frame_graph_setting_3, text='リセット', width=10, command=self.reset_lines)
         self.labelframe_vline.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
-        self.button_reset_vline.grid(row=1, column=0, padx=5, pady=5, sticky=tk.S)
+        self.labelframe_hline.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        self.button_reset_lines.grid(row=2, column=0, padx=5, pady=5, sticky=tk.S)
 
         # xaxis, yaxis
         self.x_labels = ('Wavelength [nm]', 'Energy [eV]', 'Raman Shift [cm-1]')
@@ -222,80 +255,51 @@ class PGraph(tk.Frame):
         self.entry_yticks.grid(row=2, column=3)
 
         # individual
-        self.label_color = ttk.Label(master=self.labelframe_individual, text='色')
-        self.label_linestyle = ttk.Label(master=self.labelframe_individual, text='線種')
-        self.label_y_shift = ttk.Label(master=self.labelframe_individual, text='yシフト')
-        self.label_y_times = ttk.Label(master=self.labelframe_individual, text='y倍率')
-        linestyles = ('solid', 'dashed', 'dashdot', 'dotted')
-        self.linecolor = tk.StringVar(value='black')
-        self.linestyle = tk.StringVar(value='solid')
-        optionmenu_linestyle = ttk.OptionMenu(self.labelframe_individual, self.linestyle, linestyles[0], *linestyles)
-        optionmenu_linestyle.config(width=5)
-        optionmenu_linestyle['menu'].config(font=font_sm)
-        self.linecolor = 'black'
-        self.label_show_linecolor = ttk.Label(master=self.labelframe_individual, text='■', style='L.TLabel')
-        self.label_show_linecolor.bind('<Button-1>', self.change_linecolor)
+        label_y_shift = ttk.Label(master=self.labelframe_individual, text='yシフト')
+        label_y_times = ttk.Label(master=self.labelframe_individual, text='y倍率')
         self.y_shift_value = tk.DoubleVar(value=0)
         self.y_times_value = tk.DoubleVar(value=1)
-        self.entry_y_shift = ttk.Entry(master=self.labelframe_individual, textvariable=self.y_shift_value, width=7, font=font_md, justify=tk.CENTER)
-        self.entry_y_times = ttk.Entry(master=self.labelframe_individual, textvariable=self.y_times_value, width=7, font=font_md, justify=tk.CENTER)
-        self.button_apply = ttk.Button(master=self.labelframe_individual, text='適用', width=10, command=self.apply_option)
-        self.label_color.grid(row=0, column=0, padx=5, pady=5)
-        self.label_show_linecolor.grid(row=0, column=1, padx=5, pady=5)
-        self.label_linestyle.grid(row=1, column=0, padx=5, pady=5)
-        optionmenu_linestyle.grid(row=1, column=1, padx=5, pady=5)
-        self.label_y_shift.grid(row=2, column=0, padx=5, pady=5)
-        self.entry_y_shift.grid(row=2, column=1, padx=5, pady=5)
-        self.label_y_times.grid(row=3, column=0, padx=5, pady=5)
-        self.entry_y_times.grid(row=3, column=1, padx=5, pady=5)
-        self.button_apply.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+        entry_y_shift = ttk.Entry(master=self.labelframe_individual, textvariable=self.y_shift_value, width=7, font=font_md, justify=tk.CENTER)
+        entry_y_times = ttk.Entry(master=self.labelframe_individual, textvariable=self.y_times_value, width=7, font=font_md, justify=tk.CENTER)
+        button_apply = ttk.Button(master=self.labelframe_individual, text='適用', width=10, command=self.apply_option)
+        self.label_show_linecolor, self.linecolor, self.change_linecolor, self.set_linecolor, self.linestyle = create_line_config_widget(self.labelframe_individual)
+        # create_line_config_widgetが2行目まで作成するので、3行目以降を作成する
+        label_y_shift.grid(row=2, column=0, padx=5, pady=5)
+        entry_y_shift.grid(row=2, column=1, padx=5, pady=5)
+        label_y_times.grid(row=3, column=0, padx=5, pady=5)
+        entry_y_times.grid(row=3, column=1, padx=5, pady=5)
+        button_apply.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
 
         # advanced
         self.y_shift_each_value = tk.DoubleVar(value=0)
-        self.entry_y_shift_each = ttk.Entry(master=self.labelframe_advanced, textvariable=self.y_shift_each_value, width=7, font=font_md, justify=tk.CENTER)
-        self.label_y_shift_each = ttk.Label(master=self.labelframe_advanced, text='ずつyシフト')
-        self.button_apply_advanced = ttk.Button(master=self.labelframe_advanced, text='適用', width=10, command=self.apply_option_advanced)
-        self.entry_y_shift_each.grid(row=0, column=0, padx=5, pady=5)
-        self.label_y_shift_each.grid(row=0, column=1, padx=5, pady=5)
-        self.button_apply_advanced.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+        entry_y_shift_each = ttk.Entry(master=self.labelframe_advanced, textvariable=self.y_shift_each_value, width=7, font=font_md, justify=tk.CENTER)
+        label_y_shift_each = ttk.Label(master=self.labelframe_advanced, text='ずつyシフト')
+        button_apply_advanced = ttk.Button(master=self.labelframe_advanced, text='適用', width=10, command=self.apply_option_advanced)
+        entry_y_shift_each.grid(row=0, column=0, padx=5, pady=5)
+        label_y_shift_each.grid(row=0, column=1, padx=5, pady=5)
+        button_apply_advanced.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
 
         # vertical line
         label_vline_x = ttk.Label(master=self.labelframe_vline, text='x座標')
-        label_vlinecolor = ttk.Label(master=self.labelframe_vline, text='色')
-        label_vlinestyle = ttk.Label(master=self.labelframe_vline, text='線種')
         self.vline_x_value = tk.DoubleVar(value=0)
-        self.vlinecolor = 'black'
-        self.label_show_vlinecolor = ttk.Label(master=self.labelframe_vline, text='■', style='L.TLabel')
-        self.label_show_vlinecolor.bind('<Button-1>', self.change_vlinecolor)
-        self.vlinestyle = tk.StringVar(value='solid')
-        optionmenu_vlinestyle = ttk.OptionMenu(self.labelframe_vline, self.vlinestyle, linestyles[0], *linestyles)
-        optionmenu_vlinestyle.config(width=5)
-        optionmenu_vlinestyle['menu'].config(font=font_sm)
         entry_vline_x = ttk.Entry(master=self.labelframe_vline, textvariable=self.vline_x_value, width=7, font=font_md, justify=tk.CENTER)
         button_vline_apply = ttk.Button(master=self.labelframe_vline, text='適用', width=10, command=self.apply_vline)
-        label_vlinecolor.grid(row=0, column=0, padx=5, pady=5)
-        self.label_show_vlinecolor.grid(row=0, column=1, padx=5, pady=5)
-        label_vlinestyle.grid(row=1, column=0, padx=5, pady=5)
-        optionmenu_vlinestyle.grid(row=1, column=1, padx=5, pady=5)
+        self.label_show_vlinecolor, self.vlinecolor, self.change_vlinecolor, self.set_vlinecolor, self.vlinestyle = create_line_config_widget(self.labelframe_vline)
+        # create_line_config_widgetが2行目まで作成するので、3行目以降を作成する
         label_vline_x.grid(row=2, column=0, padx=5, pady=5)
         entry_vline_x.grid(row=2, column=1, padx=5, pady=5)
         button_vline_apply.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
 
-    def change_linecolor(self, event) -> None:
-        rgb, code = colorchooser.askcolor(title='色を選択')
-        self.set_linecolor(code)
-
-    def set_linecolor(self, code) -> None:
-        self.label_show_linecolor.config(foreground=code)
-        self.linecolor = code
-
-    def change_vlinecolor(self, event) -> None:
-        rgb, code = colorchooser.askcolor(title='色を選択')
-        self.set_vlinecolor(code)
-
-    def set_vlinecolor(self, code) -> None:
-        self.label_show_linecolor.config(foreground=code)
-        self.vlinecolor = code
+        # horizontal line
+        label_hline_y = ttk.Label(master=self.labelframe_hline, text='y座標')
+        self.hline_y_value = tk.DoubleVar(value=0)
+        entry_hline_y = ttk.Entry(master=self.labelframe_hline, textvariable=self.hline_y_value, width=7, font=font_md, justify=tk.CENTER)
+        button_hline_apply = ttk.Button(master=self.labelframe_hline, text='適用', width=10, command=self.apply_hline)
+        self.label_show_hlinecolor, self.hlinecolor, self.change_hlinecolor, self.set_hlinecolor, self.hlinestyle = create_line_config_widget(self.labelframe_hline)
+        # create_line_config_widgetが2行目まで作成するので、3行目以降を作成する
+        label_hline_y.grid(row=2, column=0, padx=5, pady=5)
+        entry_hline_y.grid(row=2, column=1, padx=5, pady=5)
+        button_hline_apply.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
 
     def remove_spec_lines(self) -> None:
         for line in self.spec_lines.values():
@@ -306,6 +310,11 @@ class PGraph(tk.Frame):
         for line in self.vlines:
             line.remove()
         self.vlines = []
+
+    def remove_hlines(self) -> None:
+        for line in self.hlines:
+            line.remove()
+        self.hlines = []
 
     def remove_fitting_result(self) -> None:
         for obj in self.fitting_result:
@@ -392,7 +401,7 @@ class PGraph(tk.Frame):
             linestyle = self.linestyle.get()
             y_shift = self.y_shift_value.get()
             y_times = self.y_times_value.get()
-            self.dl.spec_dict[filename].color = self.linecolor
+            self.dl.spec_dict[filename].color = self.linecolor[0]
             self.dl.spec_dict[filename].linestyle = linestyle
             self.dl.spec_dict[filename].y_shift = y_shift
             self.dl.spec_dict[filename].y_times = y_times
@@ -411,14 +420,22 @@ class PGraph(tk.Frame):
 
     def apply_vline(self, event=None) -> None:
         x = float(self.vline_x_value.get())
-        color = self.vlinecolor
+        color = self.vlinecolor[0]
         linestyle = self.vlinestyle.get()
         line = self.ax.axvline(x=x, color=color, linestyle=linestyle)
         self.vlines.append(line)
         self.canvas.draw()
 
-    def reset_vline(self) -> None:
-        self.refresh(self.remove_vlines)
+    def apply_hline(self, event=None) -> None:
+        y = float(self.hline_y_value.get())
+        color = self.hlinecolor[0]
+        linestyle = self.hlinestyle.get()
+        line = self.ax.axhline(y=y, color=color, linestyle=linestyle)
+        self.hlines.append(line)
+        self.canvas.draw()
+
+    def reset_lines(self) -> None:
+        self.refresh(self.remove_vlines, self.remove_hlines)
 
     def load(self, event: TkinterDnD.DnDEvent=None) -> None:
         if event.data[0] == '{':
@@ -581,7 +598,7 @@ class PGraph(tk.Frame):
             filenames_new.append(filename_new)
         messagebox.showinfo('Info', f'パラメータを追記したファイルを{", ".join(filenames_new)}に保存しました．')
 
-    def delete(self, event = None) -> None:
+    def delete(self, event=None) -> None:
         for iid in self.treeview_file.selection():
             filename = self.treeview_file.get_filename(iid)
             del self.dl.spec_dict[filename]
@@ -601,8 +618,6 @@ class PGraph(tk.Frame):
 
 
 def main():
-    set_rcParams()
-
     root = Tk()
     root.title('PGraph')
 
