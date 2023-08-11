@@ -35,7 +35,7 @@ class MyTreeview(Treeview):
         else:
             spec_dict = spec_dict.items()
         for i, (filename, value) in enumerate(spec_dict):
-            calibration = value.calibration[0] if value.calibration is not None else ""
+            calibration = value.calibration.split(', ')[0].strip('[').strip("'") if value.calibration is not None else ""
             abs_path_raw = value.abs_path_raw if value.abs_path_raw is not None else ""
             abs_path_ref = value.abs_path_ref if value.abs_path_ref is not None else ""
             fitting = f'{value.fitting_function} {value.fitting_range}' if value.fitting_function is not None else ""
