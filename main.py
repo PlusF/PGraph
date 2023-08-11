@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from MyToolbar import MyToolbar
+from MyScrolledTreeview import MyTreeview
 from dataloader import DataLoader
 from fitting import Fit
 
@@ -81,7 +82,7 @@ class PGraph(tk.Frame):
 
     def create_config(self) -> None:
         # スタイル設定
-        font_lg = ('Arial', 20)
+        font_lg = ('Arial', 30)
         font_md = ('Arial', 16)
         font_sm = ('Arial', 12)
         style = ttk.Style()
@@ -89,7 +90,7 @@ class PGraph(tk.Frame):
         style.configure('TButton', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='black')
         style.configure('R.TButton', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='red')
         style.configure('TLabel', font=font_sm, padding=[0, 4, 0, 4], foreground='black')
-        style.configure('L.TLabel', font=font_lg, padding=[0, 4, 0, 4], foreground='black')
+        style.configure('L.TLabel', font=font_lg, foreground='black')
         style.configure('TEntry', font=font_md, width=14, padding=[0, 4, 0, 4], foreground='black')
         style.configure('TCheckbutton', font=font_md, padding=[0, 4, 0, 4], foreground='black')
         style.configure('TMenubutton', font=font_md, padding=[20, 4, 0, 4], foreground='black')
@@ -112,29 +113,23 @@ class PGraph(tk.Frame):
         self.frame_graph_setting.grid(row=0, column=1, rowspan=2, sticky=tk.N)
 
         # data
-        # TODO: Listbox => Treeview
-        self.listbox_file = tk.Listbox(master=self.frame_data, width=100, height=10, selectmode='extended', font=font_sm)
-        self.treeview_file = ttk.Treeview(master=self.frame_data, height=10, selectmode='extended')
-        self.listbox_file.bind('<Double-1>', self.select)
-        self.xbar = tk.Scrollbar(self.frame_data, orient=tk.HORIZONTAL)
-        self.ybar = tk.Scrollbar(self.frame_data, orient=tk.VERTICAL)
-        self.xbar.config(command=self.listbox_file.xview)
-        self.ybar.config(command=self.listbox_file.yview)
-        self.listbox_file.config(xscrollcommand=self.xbar.set)
-        self.listbox_file.config(yscrollcommand=self.ybar.set)
-        self.button_delete = ttk.Button(master=self.frame_data, text='削除', command=self.delete)
-        self.button_sort_ascending = ttk.Button(master=self.frame_data, text='ソート（昇順）', command=self.sort_file_ascending)
-        self.button_sort_descending = ttk.Button(master=self.frame_data, text='ソート（降順）', command=self.sort_file_descending)
-        self.button_reset_selection = ttk.Button(master=self.frame_data, text='ハイライト解除', command=self.reset_selection)
-        self.button_quit = ttk.Button(master=self.frame_data, text='終了', style='R.TButton', command=self.quit)
-        self.listbox_file.grid(row=0, column=0, columnspan=5)
-        self.xbar.grid(row=1, column=0, columnspan=5, sticky=tk.W + tk.E)
-        self.ybar.grid(row=0, column=5, sticky=tk.N + tk.S)
-        self.button_delete.grid(row=2, column=0, padx=5, pady=5)
-        self.button_sort_ascending.grid(row=2, column=1, padx=5, pady=5)
-        self.button_sort_descending.grid(row=2, column=2, padx=5, pady=5)
-        self.button_reset_selection.grid(row=2, column=3, padx=5, pady=5)
-        self.button_quit.grid(row=2, column=4, padx=5, pady=5)
+        self.treeview_file = MyTreeview(master=self.frame_data)
+        self.treeview_file.bind('<Button-1>', self.select)
+        self.treeview_file.bind('<Delete>', self.delete)
+        self.treeview_file.bind('<BackSpace>', self.delete)
+        self.treeview_file.bind('<Control-a>', lambda _: self.treeview_file.selection_add(self.treeview_file.get_children()))
+        self.treeview_file.bind('Enter', self.apply_option)
+        self.treeview_file.grid(row=0, column=0, columnspan=5)
+        button_delete = ttk.Button(master=self.frame_data, text='削除', command=self.delete)
+        button_sort_ascending = ttk.Button(master=self.frame_data, text='ソート（昇順）', command=self.sort_file_ascending)
+        button_sort_descending = ttk.Button(master=self.frame_data, text='ソート（降順）', command=self.sort_file_descending)
+        button_reset_selection = ttk.Button(master=self.frame_data, text='ハイライト解除', command=self.reset_selection)
+        button_quit = ttk.Button(master=self.frame_data, text='終了', style='R.TButton', command=self.quit)
+        button_delete.grid(row=2, column=0, padx=5, pady=5)
+        button_sort_ascending.grid(row=2, column=1, padx=5, pady=5)
+        button_sort_descending.grid(row=2, column=2, padx=5, pady=5)
+        button_reset_selection.grid(row=2, column=3, padx=5, pady=5)
+        button_quit.grid(row=2, column=4, padx=5, pady=5)
 
         # fitting
         self.functions = ('Lorentzian', 'Gaussian', "Voigt")
@@ -229,27 +224,24 @@ class PGraph(tk.Frame):
         # individual
         self.label_color = ttk.Label(master=self.labelframe_individual, text='色')
         self.label_linestyle = ttk.Label(master=self.labelframe_individual, text='線種')
-        self.label_y_shift = ttk.Label(master=self.labelframe_individual, text='y方向シフト')
-        self.label_y_times = ttk.Label(master=self.labelframe_individual, text='y方向倍率')
-        linecolors = ('black', 'red', 'blue', 'green', 'purple', 'gray', 'gold')
+        self.label_y_shift = ttk.Label(master=self.labelframe_individual, text='yシフト')
+        self.label_y_times = ttk.Label(master=self.labelframe_individual, text='y倍率')
         linestyles = ('solid', 'dashed', 'dashdot', 'dotted')
         self.linecolor = tk.StringVar(value='black')
         self.linestyle = tk.StringVar(value='solid')
-        optionmenu_linecolor = ttk.OptionMenu(self.labelframe_individual, self.linecolor, linecolors[0], *linecolors)
         optionmenu_linestyle = ttk.OptionMenu(self.labelframe_individual, self.linestyle, linestyles[0], *linestyles)
-        optionmenu_linecolor.config(width=8)
-        optionmenu_linecolor['menu'].config(font=font_sm)
-        optionmenu_linestyle.config(width=8)
+        optionmenu_linestyle.config(width=5)
         optionmenu_linestyle['menu'].config(font=font_sm)
-        self.label_show_color = ttk.Label(master=self.labelframe_individual, text='■', foreground=self.linecolor.get())
+        self.linecolor = 'black'
+        self.label_show_linecolor = ttk.Label(master=self.labelframe_individual, text='■', style='L.TLabel')
+        self.label_show_linecolor.bind('<Button-1>', self.change_linecolor)
         self.y_shift_value = tk.DoubleVar(value=0)
         self.y_times_value = tk.DoubleVar(value=1)
         self.entry_y_shift = ttk.Entry(master=self.labelframe_individual, textvariable=self.y_shift_value, width=7, font=font_md, justify=tk.CENTER)
         self.entry_y_times = ttk.Entry(master=self.labelframe_individual, textvariable=self.y_times_value, width=7, font=font_md, justify=tk.CENTER)
         self.button_apply = ttk.Button(master=self.labelframe_individual, text='適用', width=10, command=self.apply_option)
         self.label_color.grid(row=0, column=0, padx=5, pady=5)
-        optionmenu_linecolor.grid(row=0, column=1, padx=5, pady=5)
-        self.label_show_color.grid(row=0, column=2, padx=5, pady=5)
+        self.label_show_linecolor.grid(row=0, column=1, padx=5, pady=5)
         self.label_linestyle.grid(row=1, column=0, padx=5, pady=5)
         optionmenu_linestyle.grid(row=1, column=1, padx=5, pady=5)
         self.label_y_shift.grid(row=2, column=0, padx=5, pady=5)
@@ -261,7 +253,7 @@ class PGraph(tk.Frame):
         # advanced
         self.y_shift_each_value = tk.DoubleVar(value=0)
         self.entry_y_shift_each = ttk.Entry(master=self.labelframe_advanced, textvariable=self.y_shift_each_value, width=7, font=font_md, justify=tk.CENTER)
-        self.label_y_shift_each = ttk.Label(master=self.labelframe_advanced, text='ずつy方向にずらす')
+        self.label_y_shift_each = ttk.Label(master=self.labelframe_advanced, text='ずつyシフト')
         self.button_apply_advanced = ttk.Button(master=self.labelframe_advanced, text='適用', width=10, command=self.apply_option_advanced)
         self.entry_y_shift_each.grid(row=0, column=0, padx=5, pady=5)
         self.label_y_shift_each.grid(row=0, column=1, padx=5, pady=5)
@@ -272,23 +264,38 @@ class PGraph(tk.Frame):
         label_vlinecolor = ttk.Label(master=self.labelframe_vline, text='色')
         label_vlinestyle = ttk.Label(master=self.labelframe_vline, text='線種')
         self.vline_x_value = tk.DoubleVar(value=0)
-        self.vlinecolor = tk.StringVar(value='black')
+        self.vlinecolor = 'black'
+        self.label_show_vlinecolor = ttk.Label(master=self.labelframe_vline, text='■', style='L.TLabel')
+        self.label_show_vlinecolor.bind('<Button-1>', self.change_vlinecolor)
         self.vlinestyle = tk.StringVar(value='solid')
-        optionmenu_vlinecolor = ttk.OptionMenu(self.labelframe_vline, self.vlinecolor, linecolors[0], *linecolors)
         optionmenu_vlinestyle = ttk.OptionMenu(self.labelframe_vline, self.vlinestyle, linestyles[0], *linestyles)
-        optionmenu_vlinecolor.config(width=8)
-        optionmenu_vlinecolor['menu'].config(font=font_sm)
-        optionmenu_vlinestyle.config(width=8)
+        optionmenu_vlinestyle.config(width=5)
         optionmenu_vlinestyle['menu'].config(font=font_sm)
         entry_vline_x = ttk.Entry(master=self.labelframe_vline, textvariable=self.vline_x_value, width=7, font=font_md, justify=tk.CENTER)
         button_vline_apply = ttk.Button(master=self.labelframe_vline, text='適用', width=10, command=self.apply_vline)
         label_vlinecolor.grid(row=0, column=0, padx=5, pady=5)
-        optionmenu_vlinecolor.grid(row=0, column=1, padx=5, pady=5)
+        self.label_show_vlinecolor.grid(row=0, column=1, padx=5, pady=5)
         label_vlinestyle.grid(row=1, column=0, padx=5, pady=5)
         optionmenu_vlinestyle.grid(row=1, column=1, padx=5, pady=5)
         label_vline_x.grid(row=2, column=0, padx=5, pady=5)
         entry_vline_x.grid(row=2, column=1, padx=5, pady=5)
         button_vline_apply.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
+
+    def change_linecolor(self, event) -> None:
+        rgb, code = colorchooser.askcolor(title='色を選択')
+        self.set_linecolor(code)
+
+    def set_linecolor(self, code) -> None:
+        self.label_show_linecolor.config(foreground=code)
+        self.linecolor = code
+
+    def change_vlinecolor(self, event) -> None:
+        rgb, code = colorchooser.askcolor(title='色を選択')
+        self.set_vlinecolor(code)
+
+    def set_vlinecolor(self, code) -> None:
+        self.label_show_linecolor.config(foreground=code)
+        self.vlinecolor = code
 
     def remove_spec_lines(self) -> None:
         for line in self.spec_lines.values():
@@ -303,6 +310,7 @@ class PGraph(tk.Frame):
     def remove_fitting_result(self) -> None:
         for obj in self.fitting_result:
             obj.remove()
+        self.fitting_result = []
 
     def refresh(self, *remove_funcs) -> None:
         self.remove_spec_lines()
@@ -378,14 +386,13 @@ class PGraph(tk.Frame):
             self.ax_y.set_ticks(np.linspace(*ylim, int(self.entry_yticks.get()) + 1))
 
     def apply_option(self, event=None) -> None:
-        selected_index = self.listbox_file.curselection()
-        for index in selected_index:
-            filename = self.listbox_file.get(index)
-            color = self.linecolor.get()
+        selected_iid = self.treeview_file.selection()
+        for iid in selected_iid:
+            filename = self.treeview_file.get_filename(iid)
             linestyle = self.linestyle.get()
             y_shift = self.y_shift_value.get()
             y_times = self.y_times_value.get()
-            self.dl.spec_dict[filename].color = color
+            self.dl.spec_dict[filename].color = self.linecolor
             self.dl.spec_dict[filename].linestyle = linestyle
             self.dl.spec_dict[filename].y_shift = y_shift
             self.dl.spec_dict[filename].y_times = y_times
@@ -397,14 +404,14 @@ class PGraph(tk.Frame):
         self.refresh()
 
     def apply_option_advanced(self, event=None) -> None:
-        for i in range(len(self.dl.spec_dict)):
-            filename = self.listbox_file.get(i)
+        for i, iid in enumerate(self.treeview_file.get_children()):
+            filename = self.treeview_file.get_filename(iid)
             self.dl.spec_dict[filename].y_shift = i * self.y_shift_each_value.get()
         self.refresh()
 
     def apply_vline(self, event=None) -> None:
         x = float(self.vline_x_value.get())
-        color = self.vlinecolor.get()
+        color = self.vlinecolor
         linestyle = self.vlinestyle.get()
         line = self.ax.axvline(x=x, color=color, linestyle=linestyle)
         self.vlines.append(line)
@@ -419,31 +426,27 @@ class PGraph(tk.Frame):
         else:
             filenames = event.data.split()
         self.dl.load_files(filenames)
+        self.treeview_file.load(self.dl.spec_dict)
         self.check_device(filenames[0])
-        self.update_listbox()
         self.refresh()
 
     def select(self, event=None) -> None:
         self.dl.reset_highlight()
-        selected_index = self.listbox_file.curselection()
-        for index in selected_index:
-            filename = self.listbox_file.get(index)
-            self.dl.spec_dict[filename].highlight = True
-            self.linecolor.set(self.dl.spec_dict[filename].color)
-            self.y_shift_value.set(self.dl.spec_dict[filename].y_shift)
-            self.y_times_value.set(self.dl.spec_dict[filename].y_times)
+        # focusやselectionでは現在の選択状態を得られない
+        iid = self.treeview_file.identify_row(event.y)
+        filename = self.treeview_file.get_filename(iid)
+        if filename is None:
+            return
+        self.dl.spec_dict[filename].highlight = True
+        self.set_linecolor(self.dl.spec_dict[filename].color)
+        self.y_shift_value.set(self.dl.spec_dict[filename].y_shift)
+        self.y_times_value.set(self.dl.spec_dict[filename].y_times)
         self.refresh()
 
     def reset_selection(self) -> None:
-        self.listbox_file.select_clear(0, tk.END)
+        self.treeview_file.selection_remove(self.treeview_file.selection())
         self.dl.reset_highlight()
         self.refresh()
-
-    def update_listbox(self) -> None:
-        self.listbox_file.delete(0, tk.END)
-        loaded_filenames = self.dl.spec_dict.keys()
-        for filename in loaded_filenames:
-            self.listbox_file.insert(tk.END, filename)
 
     def check_device(self, filename: str) -> None:
         device = self.dl.spec_dict[filename].device
@@ -544,7 +547,7 @@ class PGraph(tk.Frame):
         textbox.insert(1.0, text)
 
     def load_params(self) -> None:
-        filename = self.listbox_file.get(0)
+        filename = self.treeview_file.get_filename()
         func = self.dl.spec_dict[filename].fitting_function
         fitting_range = self.dl.spec_dict[filename].fitting_range
         params = self.dl.spec_dict[filename].fitting_values
@@ -565,34 +568,32 @@ class PGraph(tk.Frame):
         self.show_params(self.text_params, self.fitter.params)
 
     def save_params(self) -> None:
-        for i in range(len(self.dl.spec_dict)):
-            filename = self.listbox_file.get(i)
+        # 現在ロードされているすべてのファイルにパラメータを保存
+        if self.fitter.params_fit is None:
+            messagebox.showerror('Error', 'フィッティングを行ってください．')
+            return
+        filenames_new = []
+        for filename, _ in self.dl.spec_dict.items():
             self.dl.spec_dict[filename].fitting_function = self.function_fitting.get()
             self.dl.spec_dict[filename].fitting_range = self.fitter.xlim
             self.dl.spec_dict[filename].fitting_values = self.fitter.params_fit.tolist()
-            self.dl.save(filename)
+            filename_new = self.dl.save(filename)
+            filenames_new.append(filename_new)
+        messagebox.showinfo('Info', f'パラメータを追記したファイルを{", ".join(filenames_new)}に保存しました．')
 
-    def delete(self) -> None:
-        selected_index = self.listbox_file.curselection()
-        for index in selected_index:
-            filename = self.listbox_file.get(index)
-            self.dl.delete_file(filename)
-            self.spec_lines[filename].remove()
-            del self.spec_lines[filename]
-        for index in reversed(selected_index):
-            self.listbox_file.delete(index)
+    def delete(self, event = None) -> None:
+        for iid in self.treeview_file.selection():
+            filename = self.treeview_file.get_filename(iid)
+            del self.dl.spec_dict[filename]
+            self.treeview_file.delete(iid)
 
-        self.canvas.draw()
+        self.refresh()
 
     def sort_file_ascending(self) -> None:
-        self.listbox_file.delete(0, tk.END)
-        for filename in sorted(self.dl.spec_dict.keys()):
-            self.listbox_file.insert(tk.END, filename)
+        self.treeview_file.load(self.dl.spec_dict, True)
 
     def sort_file_descending(self) -> None:
-        self.listbox_file.delete(0, tk.END)
-        for filename in sorted(self.dl.spec_dict.keys(), reverse=True):
-            self.listbox_file.insert(tk.END, filename)
+        self.treeview_file.load(self.dl.spec_dict, True, True)
 
     def quit(self) -> None:
         self.master.quit()
