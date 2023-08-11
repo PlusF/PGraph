@@ -132,9 +132,9 @@ class PGraph(tk.Frame):
         frame_graph = tk.LabelFrame(master=self.master, text='Graph Area')
         frame_data = tk.LabelFrame(master=self.master, text='Loaded Data')
         frame_fitting = tk.LabelFrame(master=self.master, text='Fitting')
-        frame_graph.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky=tk.N)
-        frame_data.grid(row=1, rowspan=2, column=0, padx=10, sticky=tk.N)
-        frame_fitting.grid(row=2, column=1, padx=10, sticky=tk.N)
+        frame_graph.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky=tk.NSEW)
+        frame_data.grid(row=1, rowspan=2, column=0, padx=10, sticky=tk.NSEW)
+        frame_fitting.grid(row=2, column=1, padx=10, sticky=tk.NSEW)
 
         # graph
         self.canvas = FigureCanvasTkAgg(self.fig, master=frame_graph)
@@ -142,7 +142,7 @@ class PGraph(tk.Frame):
         toolbar = MyToolbar(self.canvas, frame_graph, pack_toolbar=False)
         self.canvas.get_tk_widget().grid(row=0, column=0)
         toolbar.grid(row=1, column=0)
-        frame_graph_setting.grid(row=0, column=1, rowspan=2, sticky=tk.N)
+        frame_graph_setting.grid(row=0, column=1, rowspan=2, sticky=tk.NSEW)
 
         # data
         self.treeview_file = MyTreeview(master=frame_data)
@@ -194,9 +194,9 @@ class PGraph(tk.Frame):
         frame_graph_setting_1 = ttk.Frame(master=frame_graph_setting)
         frame_graph_setting_2 = ttk.Frame(master=frame_graph_setting)
         frame_graph_setting_3 = ttk.Frame(master=frame_graph_setting)
-        frame_graph_setting_1.grid(row=0, column=0, padx=5, sticky=tk.N + tk.W)
-        frame_graph_setting_2.grid(row=0, column=1, padx=5, sticky=tk.N + tk.W)
-        frame_graph_setting_3.grid(row=0, column=2, padx=5, sticky=tk.N + tk.W)
+        frame_graph_setting_1.grid(row=0, column=0, padx=5, sticky=tk.NSEW)
+        frame_graph_setting_2.grid(row=0, column=1, padx=5, sticky=tk.NSEW)
+        frame_graph_setting_3.grid(row=0, column=2, padx=5, sticky=tk.NSEW)
         self.labelframe_label = ttk.LabelFrame(master=frame_graph_setting_1, text='軸ラベル')
         self.labelframe_range = ttk.LabelFrame(master=frame_graph_setting_1, text='グラフ範囲')
         self.labelframe_label.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
@@ -625,7 +625,7 @@ def main():
     root.drop_target_register(DND_FILES)
     root.protocol('WM_DELETE_WINDOW', app.quit)
     root.dnd_bind('<<Drop>>', app.load)
-
+    app.grid(sticky=tk.NSEW)
     app.mainloop()
 
 
