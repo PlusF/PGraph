@@ -85,6 +85,8 @@ class PGraph(tk.Frame):
         self.dl = DataLoader()
         self.fitter = Fit()
 
+        self.ax: plt.AxesSubplot
+
         self.spec_lines = {}
         self.vlines = []
         self.hlines = []
@@ -198,9 +200,11 @@ class PGraph(tk.Frame):
         frame_graph_setting_2.grid(row=0, column=1, padx=5, sticky=tk.NSEW)
         frame_graph_setting_3.grid(row=0, column=2, padx=5, sticky=tk.NSEW)
         self.labelframe_label = ttk.LabelFrame(master=frame_graph_setting_1, text='軸ラベル')
+        self.labelframe_labelsize = ttk.LabelFrame(master=frame_graph_setting_1, text='ラベルサイズ')
         self.labelframe_range = ttk.LabelFrame(master=frame_graph_setting_1, text='グラフ範囲')
         self.labelframe_label.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
-        self.labelframe_range.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        self.labelframe_labelsize.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        self.labelframe_range.grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
         self.labelframe_individual = ttk.LabelFrame(master=frame_graph_setting_2, text='個別設定')
         self.labelframe_advanced = ttk.LabelFrame(master=frame_graph_setting_2, text='一括設定')
         self.button_reset_option = ttk.Button(master=frame_graph_setting_2, text='リセット', width=10, command=self.reset_option)
@@ -228,31 +232,53 @@ class PGraph(tk.Frame):
         optionmenu_x_label.grid(row=0, column=0, padx=5, pady=5)
         optionmenu_y_label.grid(row=1, column=0, padx=5, pady=5)
 
+        # xaxis, yaxis label size
+        label_x_label = ttk.Label(master=self.labelframe_labelsize, text='x軸')
+        label_y_label = ttk.Label(master=self.labelframe_labelsize, text='y軸')
+        label_xtick_label = ttk.Label(master=self.labelframe_labelsize, text='x軸目盛')
+        label_ytick_label = ttk.Label(master=self.labelframe_labelsize, text='y軸目盛')
+        self.x_labelsize = tk.StringVar(value='35')
+        self.y_labelsize = tk.StringVar(value='35')
+        self.xtick_labelsize = tk.StringVar(value='25')
+        self.ytick_labelsize = tk.StringVar(value='25')
+        spinbox_x_labelsize = ttk.Spinbox(master=self.labelframe_labelsize, textvariable=self.x_labelsize, font=font_md, width=6, justify=tk.CENTER, from_=5, to=50, increment=5, command=self.refresh)
+        spinbox_y_labelsize = ttk.Spinbox(master=self.labelframe_labelsize, textvariable=self.y_labelsize, font=font_md, width=6, justify=tk.CENTER, from_=5, to=50, increment=5, command=self.refresh)
+        spinbox_xtick_labelsize = ttk.Spinbox(master=self.labelframe_labelsize, textvariable=self.xtick_labelsize, font=font_md, width=6, justify=tk.CENTER, from_=5, to=50, increment=5, command=self.refresh)
+        spinbox_ytick_labelsize = ttk.Spinbox(master=self.labelframe_labelsize, textvariable=self.ytick_labelsize, font=font_md, width=6, justify=tk.CENTER, from_=5, to=50, increment=5, command=self.refresh)
+        label_x_label.grid(row=0, column=0, padx=5, pady=5)
+        spinbox_x_labelsize.grid(row=0, column=1, padx=5, pady=5)
+        label_y_label.grid(row=1, column=0, padx=5, pady=5)
+        spinbox_y_labelsize.grid(row=1, column=1, padx=5, pady=5)
+        label_xtick_label.grid(row=2, column=0, padx=5, pady=5)
+        spinbox_xtick_labelsize.grid(row=2, column=1, padx=5, pady=5)
+        label_ytick_label.grid(row=3, column=0, padx=5, pady=5)
+        spinbox_ytick_labelsize.grid(row=3, column=1, padx=5, pady=5)
+
         # range
-        self.label_min = ttk.Label(master=self.labelframe_range, text='min')
-        self.label_max = ttk.Label(master=self.labelframe_range, text='max')
-        self.label_ticks = ttk.Label(master=self.labelframe_range, text='分割数')
-        self.label_xrange = ttk.Label(master=self.labelframe_range, text='x')
-        self.label_yrange = ttk.Label(master=self.labelframe_range, text='y')
+        label_min = ttk.Label(master=self.labelframe_range, text='min')
+        label_max = ttk.Label(master=self.labelframe_range, text='max')
+        label_ticks = ttk.Label(master=self.labelframe_range, text='分割数')
+        label_xrange = ttk.Label(master=self.labelframe_range, text='x')
+        label_yrange = ttk.Label(master=self.labelframe_range, text='y')
         self.entry_xmin = ttk.Entry(master=self.labelframe_range, width=7, font=font_md, justify=tk.CENTER)
         self.entry_xmax = ttk.Entry(master=self.labelframe_range, width=7, font=font_md, justify=tk.CENTER)
         self.xticks = tk.StringVar(value='auto')
-        self.entry_xticks = ttk.Entry(master=self.labelframe_range, textvariable=self.xticks, width=5, font=font_md, justify=tk.CENTER)
+        entry_xticks = ttk.Entry(master=self.labelframe_range, textvariable=self.xticks, width=5, font=font_md, justify=tk.CENTER)
         self.entry_ymin = ttk.Entry(master=self.labelframe_range, width=7, font=font_md, justify=tk.CENTER)
         self.entry_ymax = ttk.Entry(master=self.labelframe_range, width=7, font=font_md, justify=tk.CENTER)
         self.yticks = tk.StringVar(value='auto')
-        self.entry_yticks = ttk.Entry(master=self.labelframe_range, textvariable=self.yticks, width=5, font=font_md, justify=tk.CENTER)
-        self.label_min.grid(row=0, column=1)
-        self.label_max.grid(row=0, column=2)
-        self.label_ticks.grid(row=0, column=3)
-        self.label_xrange.grid(row=1, column=0)
+        entry_yticks = ttk.Entry(master=self.labelframe_range, textvariable=self.yticks, width=5, font=font_md, justify=tk.CENTER)
+        label_min.grid(row=0, column=1)
+        label_max.grid(row=0, column=2)
+        label_ticks.grid(row=0, column=3)
+        label_xrange.grid(row=1, column=0)
         self.entry_xmin.grid(row=1, column=1)
         self.entry_xmax.grid(row=1, column=2)
-        self.entry_xticks.grid(row=1, column=3)
-        self.label_yrange.grid(row=2, column=0)
+        entry_xticks.grid(row=1, column=3)
+        label_yrange.grid(row=2, column=0)
         self.entry_ymin.grid(row=2, column=1)
         self.entry_ymax.grid(row=2, column=2)
-        self.entry_yticks.grid(row=2, column=3)
+        entry_yticks.grid(row=2, column=3)
 
         # individual
         label_y_shift = ttk.Label(master=self.labelframe_individual, text='yシフト')
@@ -343,21 +369,59 @@ class PGraph(tk.Frame):
             ylims['min'].append(min(y + spec.y_shift))
             ylims['max'].append(max(y + spec.y_shift))
 
-        xlim = [min(xlims['min']), max(xlims['max'])]
-        ylim = [min(ylims['min']) * 0.9, max(ylims['max']) * 1.1]
-
-        self.ax.set(xlim=xlim, ylim=ylim)
-
-        self.ax.set_xlabel(self.x_label.get())
-        self.ax.set_ylabel(self.y_label.get())
-
         self.remove_fitting_result()
         if self.if_show.get():
             self.fitting_result = self.fitter.draw(self.ax)
 
-        self.check_and_fix_range()
+        xlim = [min(xlims['min']), max(xlims['max'])]
+        ylim = [min(ylims['min']) * 0.9, max(ylims['max']) * 1.1]
+        self.set_range(xlim, ylim)
 
         self.canvas.draw()
+
+    def set_range(self, xlim, ylim) -> None:
+        try:
+            xmin = float(self.entry_xmin.get())
+        except ValueError:
+            xmin = xlim[0]
+        try:
+            xmax = float(self.entry_xmax.get())
+        except ValueError:
+            xmax = xlim[1]
+        try:
+            ymin = float(self.entry_ymin.get())
+        except ValueError:
+            ymin = ylim[0]
+        try:
+            ymax = float(self.entry_ymax.get())
+        except ValueError:
+            ymax = ylim[1]
+        self.ax.set(xlim=(xmin, xmax), ylim=(ymin, ymax))
+
+        try:
+            num_xticks = int(self.xticks.get()) + 1
+        except ValueError:
+            num_xticks = 5
+        try:
+            num_yticks = int(self.yticks.get()) + 1
+        except ValueError:
+            num_yticks = 5
+
+        xticks = np.linspace(xmin, xmax, num_xticks)
+        yticks = np.linspace(ymin, ymax, num_yticks)
+
+        if self.y_label.get() == self.y_labels[0]:  # arbitrary units
+            yticks = []
+
+        try:
+            self.ax.set_xlabel(self.x_label.get(), fontsize=int(self.x_labelsize.get()))
+            self.ax.set_ylabel(self.y_label.get(), fontsize=int(self.y_labelsize.get()))
+            self.ax.set_xticks(xticks)
+            self.ax.set_yticks(yticks)
+            self.ax.tick_params(axis='x', labelsize=int(self.xtick_labelsize.get()))
+            self.ax.tick_params(axis='y', labelsize=int(self.ytick_labelsize.get()))
+        except ValueError:
+            messagebox.showerror('エラー', 'ラベルサイズには整数を入力してください。')
 
     def get_graph_range(self) -> [list[float, float], list[float, float]]:
         xmin = self.entry_xmin.get()
@@ -382,17 +446,6 @@ class PGraph(tk.Frame):
             ymax = float(ymax)
 
         return [xmin, xmax], [ymin, ymax]
-
-    def check_and_fix_range(self) -> None:
-        xlim, ylim = self.get_graph_range()
-        self.ax.set(xlim=xlim, ylim=ylim)
-
-        self.ax_x.reset_ticks()
-        self.ax_y.reset_ticks()
-        if self.xticks.get() != 'auto':
-            self.ax_x.set_ticks(np.linspace(*xlim, int(self.entry_xticks.get()) + 1))
-        if self.yticks.get() != 'auto':
-            self.ax_y.set_ticks(np.linspace(*ylim, int(self.entry_yticks.get()) + 1))
 
     def apply_option(self, event=None) -> None:
         selected_iid = self.treeview_file.selection()
