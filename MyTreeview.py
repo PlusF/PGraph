@@ -1,6 +1,5 @@
-from tkinter import Frame, Pack, Grid, Place
-from tkinter.ttk import Treeview, Scrollbar
-from tkinter.constants import HORIZONTAL, NSEW, END
+from tkinter.ttk import Treeview
+from tkinter.constants import END
 
 
 class MyTreeview(Treeview):

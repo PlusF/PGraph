@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from MyToolbar import MyToolbar
-from MyScrolledTreeview import MyTreeview
+from MyTreeview import MyTreeview
 from dataloader import DataLoader
 from fitting import Fit
 
