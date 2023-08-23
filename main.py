@@ -254,7 +254,7 @@ class PGraph(tk.Frame):
         entry_xtick_labelsize.grid(row=2, column=1, padx=5, pady=5)
         label_ytick_label.grid(row=3, column=0, padx=5, pady=5)
         entry_ytick_labelsize.grid(row=3, column=1, padx=5, pady=5)
-        button_apply.grid(row=4, column=0, columspan=2)
+        button_apply.grid(row=4, column=0, columnspan=2)
 
         # range
         label_min = ttk.Label(master=self.labelframe_range, text='min')
