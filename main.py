@@ -241,18 +241,20 @@ class PGraph(tk.Frame):
         self.y_labelsize = tk.StringVar(value='35')
         self.xtick_labelsize = tk.StringVar(value='25')
         self.ytick_labelsize = tk.StringVar(value='25')
-        spinbox_x_labelsize = ttk.Spinbox(master=self.labelframe_labelsize, textvariable=self.x_labelsize, font=font_md, width=6, justify=tk.CENTER, from_=5, to=50, increment=5, command=self.refresh)
-        spinbox_y_labelsize = ttk.Spinbox(master=self.labelframe_labelsize, textvariable=self.y_labelsize, font=font_md, width=6, justify=tk.CENTER, from_=5, to=50, increment=5, command=self.refresh)
-        spinbox_xtick_labelsize = ttk.Spinbox(master=self.labelframe_labelsize, textvariable=self.xtick_labelsize, font=font_md, width=6, justify=tk.CENTER, from_=5, to=50, increment=5, command=self.refresh)
-        spinbox_ytick_labelsize = ttk.Spinbox(master=self.labelframe_labelsize, textvariable=self.ytick_labelsize, font=font_md, width=6, justify=tk.CENTER, from_=5, to=50, increment=5, command=self.refresh)
+        entry_x_labelsize = ttk.Entry(master=self.labelframe_labelsize, textvariable=self.x_labelsize, font=font_md, width=6, justify=tk.CENTER)
+        entry_y_labelsize = ttk.Entry(master=self.labelframe_labelsize, textvariable=self.y_labelsize, font=font_md, width=6, justify=tk.CENTER)
+        entry_xtick_labelsize = ttk.Entry(master=self.labelframe_labelsize, textvariable=self.xtick_labelsize, font=font_md, width=6, justify=tk.CENTER)
+        entry_ytick_labelsize = ttk.Entry(master=self.labelframe_labelsize, textvariable=self.ytick_labelsize, font=font_md, width=6, justify=tk.CENTER)
+        button_apply = ttk.Button(master=self.labelframe_labelsize, text='適用', width=10, command=self.refresh)
         label_x_label.grid(row=0, column=0, padx=5, pady=5)
-        spinbox_x_labelsize.grid(row=0, column=1, padx=5, pady=5)
+        entry_x_labelsize.grid(row=0, column=1, padx=5, pady=5)
         label_y_label.grid(row=1, column=0, padx=5, pady=5)
-        spinbox_y_labelsize.grid(row=1, column=1, padx=5, pady=5)
+        entry_y_labelsize.grid(row=1, column=1, padx=5, pady=5)
         label_xtick_label.grid(row=2, column=0, padx=5, pady=5)
-        spinbox_xtick_labelsize.grid(row=2, column=1, padx=5, pady=5)
+        entry_xtick_labelsize.grid(row=2, column=1, padx=5, pady=5)
         label_ytick_label.grid(row=3, column=0, padx=5, pady=5)
-        spinbox_ytick_labelsize.grid(row=3, column=1, padx=5, pady=5)
+        entry_ytick_labelsize.grid(row=3, column=1, padx=5, pady=5)
+        button_apply.grid(row=4, column=0, columspan=2)
 
         # range
         label_min = ttk.Label(master=self.labelframe_range, text='min')
@@ -423,7 +425,7 @@ class PGraph(tk.Frame):
         except ValueError:
             messagebox.showerror('エラー', 'ラベルサイズには整数を入力してください。')
 
-    def get_graph_range(self) -> [list[float, float], list[float, float]]:
+    def get_graph_range(self) -> [list, list]:
         xmin = self.entry_xmin.get()
         xmax = self.entry_xmax.get()
         ymin = self.entry_ymin.get()
@@ -530,7 +532,7 @@ class PGraph(tk.Frame):
             self.x_label.set(self.x_labels[0])
             self.y_label.set(self.y_labels[0])
 
-    def get_params_from_text(self) -> list[list[str]]:
+    def get_params_from_text(self) -> list:
         params = self.text_params.get(1.0, tk.END)
         params = params.split('\n')
         params = [p.split() for p in params]
@@ -606,7 +608,7 @@ class PGraph(tk.Frame):
 
         self.refresh()
 
-    def show_params(self, textbox: tk.Text, params: list[float]) -> None:
+    def show_params(self, textbox: tk.Text, params: list) -> None:
         text = ''
         for i in range(self.fitter.num_func):
             for j in range(self.fitter.num_params_per_func):

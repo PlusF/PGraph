@@ -1,4 +1,3 @@
-from typing import Literal
 from scipy.optimize import curve_fit
 from scipy.special import wofz
 import numpy as np
@@ -57,7 +56,7 @@ class Fit:
         self.x = x
         self.y = y
 
-    def set_function(self, name: Literal['Lorentzian', 'Gaussian', 'Voigt']) -> None:
+    def set_function(self, name: str) -> None:
         if name == 'Lorentzian':
             self.func = Lorentzian
             self.num_params_per_func = 3
@@ -67,8 +66,10 @@ class Fit:
         elif name == 'Voigt':
             self.func = Voigt
             self.num_params_per_func = 4
+        else:
+            raise ValueError(f'Unsupported function name: {name}')
 
-    def set_params(self, params: list[float]) -> None:
+    def set_params(self, params: list) -> None:
         self.params = params
         self.num_func = int(len(self.params) / self.num_params_per_func)
 
