@@ -1,14 +1,16 @@
 # PGraph
 python graph software for Rayleigh, Raman, Absorbance spectra
 
-# Install Libraries
+# Installation
+## Versions
+- Python >=3.9\
 `pip install -r requirements.txt`  
 
 # How to Use
 ## Load
 move to the directory where `pgraph.py` is placed.
 Then type
-`python pgraph.py`  
+`python main.py`  
 and this window shows up.  
 ![image](https://user-images.githubusercontent.com/92524649/172366440-e29d69ff-916e-44b8-8e41-3e5f6e87b84f.png)  
 Drag and drop files which contains spectrum data.  
