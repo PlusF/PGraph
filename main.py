@@ -43,7 +43,7 @@ plt.rcParams['legend.fancybox'] = False     # Trueにすると囲いの四隅が
 plt.rcParams['lines.linewidth'] = 1.0
 plt.rcParams['image.cmap'] = 'jet'
 plt.rcParams['figure.subplot.top'] = 0.95
-plt.rcParams['figure.subplot.bottom'] = 0.15
+plt.rcParams['figure.subplot.bottom'] = 0.17
 plt.rcParams['figure.subplot.left'] = 0.1
 plt.rcParams['figure.subplot.right'] = 0.95
 
@@ -219,7 +219,7 @@ class PGraph(tk.Frame):
         self.button_reset_lines.grid(row=2, column=0, padx=5, pady=5, sticky=tk.S)
 
         # xaxis, yaxis
-        self.x_labels = ('Wavelength [nm]', 'Energy [eV]', 'Raman Shift [cm-1]')
+        self.x_labels = ('Wavelength [nm]', 'Energy [eV]', 'Raman Shift [cm$^{-1}$]')
         self.y_labels = ('Intensity [arb. units]', 'Counts', 'Absorbance', 'Transmittance')
         self.x_label = tk.StringVar()
         optionmenu_x_label = ttk.OptionMenu(self.labelframe_label, self.x_label, self.x_labels[0], *self.x_labels, command=self.apply_option)
@@ -526,7 +526,10 @@ class PGraph(tk.Frame):
             self.x_label.set(self.x_labels[2])
             self.y_label.set(self.y_labels[0])
         elif device == 'Andor':
-            self.x_label.set(self.x_labels[0])
+            if self.dl.spec_dict[filename].xdata[0] < 0:  # Raman
+                self.x_label.set(self.x_labels[2])
+            else:  # Rayleigh
+                self.x_label.set(self.x_labels[0])
             self.y_label.set(self.y_labels[0])
         elif device == 'CCS':
             self.x_label.set(self.x_labels[0])
