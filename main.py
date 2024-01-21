@@ -152,7 +152,7 @@ class PGraph(tk.Frame):
         self.treeview_file.bind('<Delete>', self.delete)
         self.treeview_file.bind('<BackSpace>', self.delete)
         self.treeview_file.bind('<Control-a>', lambda _: self.treeview_file.selection_add(self.treeview_file.get_children()))
-        self.treeview_file.bind('Enter', self.apply_option)
+        self.treeview_file.bind('Enter', self.refresh)
         self.treeview_file.grid(row=0, column=0, columnspan=5)
         button_delete = ttk.Button(master=frame_data, text='削除', command=self.delete)
         button_sort_ascending = ttk.Button(master=frame_data, text='ソート（昇順）', command=self.sort_file_ascending)
